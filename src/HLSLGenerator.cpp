@@ -959,7 +959,7 @@ void HLSLGenerator::OutputDeclaration(HLSLDeclaration* declaration)
         int reg = -1;
         if (declaration->registerName != NULL)
         {
-            sscanf(declaration->registerName, "s%d", &reg);
+            sscanf_s(declaration->registerName, "s%d", &reg);
         }
 
         const char* textureType = NULL;
