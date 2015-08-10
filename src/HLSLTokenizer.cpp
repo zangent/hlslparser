@@ -338,15 +338,15 @@ bool HLSLTokenizer::ScanNumber()
 
     // If the character after the number is an f then the f is treated as part
     // of the number (to handle 1.0f syntax).
-    if (fEnd[0] == 'f' && fEnd < m_bufferEnd)
-    {
-        ++fEnd;
-    }
+	if( ( fEnd[ 0 ] == 'f' || fEnd[ 0 ] == 'h' ) && fEnd < m_bufferEnd )
+	{
+		++fEnd;
+	}
 
-    if (fEnd > iEnd && GetIsNumberSeparator(fEnd[0]))
-    {
-        m_buffer = fEnd;
-        m_token  = HLSLToken_FloatLiteral;
+	if( fEnd > iEnd && GetIsNumberSeparator( fEnd[ 0 ] ) )
+	{
+		m_buffer = fEnd;
+		m_token = fEnd[ 0 ] == 'f' ? HLSLToken_FloatLiteral : HLSLToken_HalfLiteral;
         m_fValue = static_cast<float>(fValue);
         return true;
     }
@@ -522,7 +522,7 @@ void HLSLTokenizer::Error(const char* format, ...)
 
 void HLSLTokenizer::GetTokenName(char buffer[s_maxIdentifier]) const
 {
-    if (m_token == HLSLToken_FloatLiteral)
+    if (m_token == HLSLToken_FloatLiteral || m_token == HLSLToken_HalfLiteral )
     {
 		sprintf_s( buffer, s_maxIdentifier, "%f", m_fValue );
     }
@@ -573,6 +573,9 @@ void HLSLTokenizer::GetTokenName(int token, char buffer[s_maxIdentifier])
         case HLSLToken_DivideEqual:
 			strcpy_s( buffer, s_maxIdentifier, "/=" );
             break;
+		case HLSLToken_HalfLiteral:
+			strcpy_s( buffer, s_maxIdentifier, "half" );
+			break;
         case HLSLToken_FloatLiteral:
 			strcpy_s( buffer, s_maxIdentifier, "float" );
             break;

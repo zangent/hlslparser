@@ -1127,6 +1127,17 @@ bool HLSLParser::AcceptFloat(float& value)
     return false;
 }
 
+bool HLSLParser::AcceptHalf( float& value )
+{
+	if( m_tokenizer.GetToken() == HLSLToken_HalfLiteral )
+	{
+		value = m_tokenizer.GetFloat();
+		m_tokenizer.Next();
+		return true;
+	}
+	return false;
+}
+
 bool HLSLParser::AcceptInt(int& value)
 {
     if (m_tokenizer.GetToken() == HLSLToken_IntLiteral)
@@ -2014,6 +2025,16 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
             expression = literalExpression;
             return true;
         }
+		if( AcceptHalf( fValue ) )
+		{
+			HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>( fileName, line );
+			literalExpression->type = HLSLBaseType_Half;
+			literalExpression->fValue = fValue;
+			literalExpression->expressionType.baseType = literalExpression->type;
+			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
+			expression = literalExpression;
+			return true;
+		}
         else if (AcceptInt(iValue))
         {
             HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>(fileName, line);

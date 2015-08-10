@@ -85,6 +85,7 @@ enum HLSLToken
 
     // Other token types.
     HLSLToken_FloatLiteral,
+	HLSLToken_HalfLiteral,
     HLSLToken_IntLiteral,
     HLSLToken_Identifier,
 
