@@ -136,6 +136,7 @@ private:
 
     bool SkipWhitespace();
     bool SkipComment();
+	bool SkipPragmaDirective();
     bool ScanNumber();
     bool ScanLineDirective();
 

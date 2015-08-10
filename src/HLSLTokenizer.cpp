@@ -114,7 +114,7 @@ HLSLTokenizer::HLSLTokenizer(const char* fileName, const char* buffer, size_t le
 void HLSLTokenizer::Next()
 {
 
-    while (SkipWhitespace() || SkipComment() || ScanLineDirective())
+	while( SkipWhitespace() || SkipComment() || ScanLineDirective() || SkipPragmaDirective() )
     {
     }
 
@@ -300,6 +300,32 @@ bool HLSLTokenizer::SkipComment()
         }
     }
     return result;
+}
+
+bool HLSLTokenizer::SkipPragmaDirective()
+{
+	bool result = false;
+	if( m_bufferEnd - m_buffer > 7 && *m_buffer == '#' )
+	{
+		const char* ptr = m_buffer + 1;
+		while( isspace( *ptr ) )
+			ptr++;
+
+		if( strncmp( ptr, "pragma", 6 ) == 0 && isspace( ptr[ 6 ] ) )
+		{
+			m_buffer = ptr + 6;
+			result = true;
+			while( m_buffer < m_bufferEnd )
+			{
+				if( *( m_buffer++ ) == '\n' )
+				{
+					++m_lineNumber;
+					break;
+				}
+			}
+		}
+	}
+	return result;
 }
 
 bool HLSLTokenizer::ScanNumber()
