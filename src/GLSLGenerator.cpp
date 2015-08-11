@@ -128,6 +128,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_tex2DbiasFunction[0]      = 0;
     m_tex3DlodFunction[0]       = 0;
     m_texCUBEbiasFunction[0]    = 0;
+	m_texCUBElodFunction[ 0 ] 	= 0;
     m_scalarSwizzle2Function[0] = 0;
     m_scalarSwizzle3Function[0] = 0;
     m_scalarSwizzle4Function[0] = 0;
@@ -148,6 +149,7 @@ bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* en
     bool usesTex2Dbias = m_tree->GetContainsString("tex2Dbias");
     bool usesTex3Dlod = m_tree->GetContainsString("tex3Dlod");
     bool usestexCUBEbias = m_tree->GetContainsString("texCUBEbias");
+	bool usestexCUBElod = m_tree->GetContainsString( "texCUBElod" );
     bool usesSinCos = m_tree->GetContainsString("sincos");
 
     ChooseUniqueName("matrix_row", m_matrixRowFunction, sizeof(m_matrixRowFunction));
@@ -156,6 +158,7 @@ bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* en
     ChooseUniqueName("tex2Dbias", m_tex2DbiasFunction, sizeof(m_tex2DbiasFunction));
     ChooseUniqueName("tex3Dlod", m_tex3DlodFunction, sizeof(m_tex3DlodFunction));
     ChooseUniqueName("texCUBEbias", m_texCUBEbiasFunction, sizeof(m_texCUBEbiasFunction));
+	ChooseUniqueName( "texCUBElod", m_texCUBElodFunction, sizeof( m_texCUBElodFunction ) );
 
     for (int i = 0; i < s_numReservedWords; ++i)
     {
@@ -254,6 +257,12 @@ bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* en
             m_writer.WriteLine(0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return texture(sampler, texCoord.xyz);  }", m_texCUBEbiasFunction );
         }
     }
+
+	// Output the special function used to emulate texCUBElod
+	if( usestexCUBElod )
+	{
+		m_writer.WriteLine( 0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return textureLod(sampler, texCoord.xyz, texCoord.w);  }", m_texCUBElodFunction );
+	}
 
     m_writer.WriteLine(0, "vec2  %s(float x) { return  vec2(x, x); }", m_scalarSwizzle2Function);
     m_writer.WriteLine(0, "ivec2 %s(int   x) { return ivec2(x, x); }", m_scalarSwizzle2Function);
@@ -664,6 +673,10 @@ void GLSLGenerator::OutputIdentifier(const char* name)
     {
         name = m_texCUBEbiasFunction;
     }
+	else if( String_Equal( name, "texCUBElod" ) )
+	{
+		name = m_texCUBElodFunction;
+	}
     else if (String_Equal(name, "atan2"))
     {
         name = "atan";
