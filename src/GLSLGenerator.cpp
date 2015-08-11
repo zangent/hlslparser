@@ -49,12 +49,14 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Float2:       return "vec2";
     case HLSLBaseType_Float3:       return "vec3";
     case HLSLBaseType_Float4:       return "vec4";
+	case HLSLBaseType_Float2x2:     return "mat2";
     case HLSLBaseType_Float3x3:     return "mat3";
     case HLSLBaseType_Float4x4:     return "mat4";
     case HLSLBaseType_Half:         return "float";
     case HLSLBaseType_Half2:        return "vec2";
     case HLSLBaseType_Half3:        return "vec3";
     case HLSLBaseType_Half4:        return "vec4";
+	case HLSLBaseType_Half2x2:      return "mat2";
     case HLSLBaseType_Half3x3:      return "mat3";
     case HLSLBaseType_Half4x4:      return "mat4";
     case HLSLBaseType_Bool:         return "bool";
@@ -490,8 +492,12 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
             OutputExpression(memberAccess->object);
             m_writer.Write(")");
 
-            if (memberAccess->object->expressionType.baseType == HLSLBaseType_Float3x3 ||
-                memberAccess->object->expressionType.baseType == HLSLBaseType_Float4x4)
+			if( memberAccess->object->expressionType.baseType == HLSLBaseType_Float2x2 ||
+				memberAccess->object->expressionType.baseType == HLSLBaseType_Float3x3 ||
+                memberAccess->object->expressionType.baseType == HLSLBaseType_Float4x4 ||
+				memberAccess->object->expressionType.baseType == HLSLBaseType_Half2x2 ||
+				memberAccess->object->expressionType.baseType == HLSLBaseType_Half3x3 ||
+				memberAccess->object->expressionType.baseType == HLSLBaseType_Half4x4 )
             {
                 // Handle HLSL matrix "swizzling".
                 // TODO: Properly handle multiple element selection such as _m00_m12
@@ -535,8 +541,12 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         HLSLArrayAccess* arrayAccess = static_cast<HLSLArrayAccess*>(expression);
 
         if (!arrayAccess->array->expressionType.array &&
-            (arrayAccess->array->expressionType.baseType == HLSLBaseType_Float3x3 ||
-             arrayAccess->array->expressionType.baseType == HLSLBaseType_Float4x4))
+			(arrayAccess->array->expressionType.baseType == HLSLBaseType_Float2x2 ||
+			 arrayAccess->array->expressionType.baseType == HLSLBaseType_Float3x3 ||
+             arrayAccess->array->expressionType.baseType == HLSLBaseType_Float4x4 ||
+			 arrayAccess->array->expressionType.baseType == HLSLBaseType_Half2x2 ||
+			 arrayAccess->array->expressionType.baseType == HLSLBaseType_Half3x3 ||
+			 arrayAccess->array->expressionType.baseType == HLSLBaseType_Half4x4 ) )
         {
             // GLSL access a matrix as m[c][r] while HLSL is m[r][c], so use our
             // special row access function to convert.

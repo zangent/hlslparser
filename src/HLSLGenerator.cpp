@@ -27,12 +27,14 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Float2:       return "float2";
     case HLSLBaseType_Float3:       return "float3";
     case HLSLBaseType_Float4:       return "float4";
+	case HLSLBaseType_Float2x2:     return "float2x2";
     case HLSLBaseType_Float3x3:     return "float3x3";
     case HLSLBaseType_Float4x4:     return "float4x4";
     case HLSLBaseType_Half:         return "half";
     case HLSLBaseType_Half2:        return "half2";
     case HLSLBaseType_Half3:        return "half3";
     case HLSLBaseType_Half4:        return "half4";
+	case HLSLBaseType_Half2x2:      return "half2x2";
     case HLSLBaseType_Half3x3:      return "half3x3";
     case HLSLBaseType_Half4x4:      return "half4x4";
     case HLSLBaseType_Bool:         return "bool";
