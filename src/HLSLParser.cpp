@@ -1907,6 +1907,10 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
         return false;
     }
 
+	// reset priority cause openned parenthesis
+	if( needsEndParen )
+		priority = 0;
+
     while (1)
     {
         HLSLBinaryOp binaryOp;
@@ -1966,6 +1970,13 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
         {
             break;
         }
+
+		if( needsEndParen )
+		{
+			if( !Expect( ')' ) )
+				return false;
+			needsEndParen = false;
+		}
     }
 
     return !needsEndParen || Expect(')');
