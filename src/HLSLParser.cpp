@@ -688,9 +688,9 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4,
 			HLSLBaseType_Half2x2, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
 			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4,
-			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half,
-			HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half
-        },
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4,
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4
+		},
         { // HLSLBaseType_Half2
             HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
