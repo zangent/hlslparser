@@ -68,6 +68,9 @@ enum HLSLBaseType
     HLSLBaseType_Half4x4,
     HLSLBaseType_Bool,
     HLSLBaseType_FirstInteger = HLSLBaseType_Bool,
+	HLSLBaseType_Bool2,
+	HLSLBaseType_Bool3,
+	HLSLBaseType_Bool4,
     HLSLBaseType_Int,
     HLSLBaseType_Int2,
     HLSLBaseType_Int3,
@@ -101,6 +104,34 @@ inline bool IsSamplerType(HLSLBaseType baseType)
            baseType == HLSLBaseType_Sampler2DMS;
 }
 
+inline bool isScalarType( HLSLBaseType baseType )
+{
+	return  baseType == HLSLBaseType_Float ||
+			baseType == HLSLBaseType_Half ||
+			baseType == HLSLBaseType_Bool ||
+			baseType == HLSLBaseType_Int ||
+			baseType == HLSLBaseType_Uint;
+}
+
+inline bool isVectorType( HLSLBaseType baseType )
+{
+	return  baseType == HLSLBaseType_Float2 ||
+		baseType == HLSLBaseType_Float3 ||
+		baseType == HLSLBaseType_Float4 ||
+		baseType == HLSLBaseType_Half2 ||
+		baseType == HLSLBaseType_Half3 ||
+		baseType == HLSLBaseType_Half4 ||
+		baseType == HLSLBaseType_Bool2 ||
+		baseType == HLSLBaseType_Bool3 ||
+		baseType == HLSLBaseType_Bool4 ||
+		baseType == HLSLBaseType_Int2  ||
+		baseType == HLSLBaseType_Int3  ||
+		baseType == HLSLBaseType_Int4  ||
+		baseType == HLSLBaseType_Uint2 ||
+		baseType == HLSLBaseType_Uint3 ||
+		baseType == HLSLBaseType_Uint4;
+}
+
 enum HLSLBinaryOp
 {
     HLSLBinaryOp_And,
@@ -124,6 +155,16 @@ enum HLSLBinaryOp
     HLSLBinaryOp_MulAssign,
     HLSLBinaryOp_DivAssign,
 };
+
+inline bool isCompareOp( HLSLBinaryOp op )
+{
+	return op == HLSLBinaryOp_Less ||
+		op == HLSLBinaryOp_Greater ||
+		op == HLSLBinaryOp_LessEqual ||
+		op == HLSLBinaryOp_GreaterEqual ||
+		op == HLSLBinaryOp_Equal ||
+		op == HLSLBinaryOp_NotEqual;
+}
 
 enum HLSLUnaryOp
 {
@@ -217,6 +258,16 @@ struct HLSLType
 inline bool IsSamplerType(const HLSLType & type)
 {
     return IsSamplerType(type.baseType);
+}
+
+inline bool isScalarType(const HLSLType & type)
+{
+	return isScalarType(type.baseType);
+}
+
+inline bool isVectorType(const HLSLType & type)
+{
+	return isVectorType(type.baseType);
 }
 
 

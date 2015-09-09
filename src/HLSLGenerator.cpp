@@ -38,6 +38,9 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Half3x3:      return "half3x3";
     case HLSLBaseType_Half4x4:      return "half4x4";
     case HLSLBaseType_Bool:         return "bool";
+	case HLSLBaseType_Bool2:        return "bool2";
+	case HLSLBaseType_Bool3:        return "bool3";
+	case HLSLBaseType_Bool4:        return "bool4";
     case HLSLBaseType_Int:          return "int";
     case HLSLBaseType_Int2:         return "int2";
     case HLSLBaseType_Int3:         return "int3";

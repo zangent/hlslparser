@@ -92,6 +92,7 @@ private:
     char                m_scalarSwizzle3Function[64];
     char                m_scalarSwizzle4Function[64];
     char                m_sinCosFunction[64];
+	char                m_bvecTernary[ 64 ];
 
     bool                m_error;
 

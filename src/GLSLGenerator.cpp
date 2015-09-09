@@ -60,6 +60,9 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Half3x3:      return "mat3";
     case HLSLBaseType_Half4x4:      return "mat4";
     case HLSLBaseType_Bool:         return "bool";
+	case HLSLBaseType_Bool2:        return "bvec2";
+	case HLSLBaseType_Bool3:        return "bvec3";
+	case HLSLBaseType_Bool4:        return "bvec4";
     case HLSLBaseType_Int:          return "int";
     case HLSLBaseType_Int2:         return "ivec2";
     case HLSLBaseType_Int3:         return "ivec3";
@@ -133,6 +136,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_scalarSwizzle3Function[0] = 0;
     m_scalarSwizzle4Function[0] = 0;
     m_sinCosFunction[0]         = 0;
+	m_bvecTernary[ 0 ]			= 0;
     m_outputPosition            = false;
 }
 
@@ -170,6 +174,8 @@ bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* en
     ChooseUniqueName("m_scalar_swizzle4", m_scalarSwizzle4Function, sizeof(m_scalarSwizzle4Function));
 
     ChooseUniqueName("sincos", m_sinCosFunction, sizeof(m_sinCosFunction));
+
+	ChooseUniqueName( "bvecTernary", m_bvecTernary, sizeof( m_bvecTernary ) );
 
     if (target == Target_VertexShader)
     {
@@ -285,6 +291,11 @@ bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* en
                 floatTypes[i], floatTypes[i], floatTypes[i]);
         }
     }
+
+	// special function to emulate ?: with bool{2,3,4} condition type
+	m_writer.WriteLine( 0, "vec2 %s(bvec2 cond, vec2 trueExpr, vec2 falseExpr) { vec2 ret; ret.x = cond.x ? trueExpr.x : falseExpr.x; ret.y = cond.y ? trueExpr.y : falseExpr.y; return ret; }", m_bvecTernary );
+	m_writer.WriteLine( 0, "vec3 %s(bvec3 cond, vec3 trueExpr, vec3 falseExpr) { vec3 ret; ret.x = cond.x ? trueExpr.x : falseExpr.x; ret.y = cond.y ? trueExpr.y : falseExpr.y; ret.z = cond.z ? trueExpr.z : falseExpr.z; return ret; }", m_bvecTernary );
+	m_writer.WriteLine( 0, "vec4 %s(bvec4 cond, vec4 trueExpr, vec4 falseExpr) { vec4 ret; ret.x = cond.x ? trueExpr.x : falseExpr.x; ret.y = cond.y ? trueExpr.y : falseExpr.y; ret.z = cond.z ? trueExpr.z : falseExpr.z; ret.w = cond.w ? trueExpr.w : falseExpr.w; return ret; }", m_bvecTernary );
 
     OutputAttributes(entryFunction);
     OutputStatements(0, statement);
@@ -427,44 +438,89 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         const char* op = "?";
         const HLSLType* dstType1 = NULL;
         const HLSLType* dstType2 = NULL;
-        switch (binaryExpression->binaryOp)
-        {
-        case HLSLBinaryOp_Add:          op = " + "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
-        case HLSLBinaryOp_Sub:          op = " - "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
-        case HLSLBinaryOp_Mul:          op = " * "; break;
-        case HLSLBinaryOp_Div:          op = " / "; break;
-        case HLSLBinaryOp_Less:         op = " < "; break;
-        case HLSLBinaryOp_Greater:      op = " > "; break;
-        case HLSLBinaryOp_LessEqual:    op = " <= "; break;
-        case HLSLBinaryOp_GreaterEqual: op = " >= "; break;
-        case HLSLBinaryOp_Equal:        op = " == "; break;
-        case HLSLBinaryOp_NotEqual:     op = " != "; break;
-        case HLSLBinaryOp_Assign:       op = " = ";  dstType2 = &binaryExpression->expressionType; break;
-        case HLSLBinaryOp_AddAssign:    op = " += "; dstType2 = &binaryExpression->expressionType; break;
-        case HLSLBinaryOp_SubAssign:    op = " -= "; dstType2 = &binaryExpression->expressionType; break;
-        case HLSLBinaryOp_MulAssign:    op = " *= "; dstType2 = &binaryExpression->expressionType; break;
-        case HLSLBinaryOp_DivAssign:    op = " /= "; dstType2 = &binaryExpression->expressionType; break;
-        case HLSLBinaryOp_And:          op = " && "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
-        case HLSLBinaryOp_Or:           op = " || "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
-        default:
-            ASSERT(0);
-        }
-        m_writer.Write("(");
-        OutputExpression(binaryExpression->expression1, dstType1);
-        m_writer.Write("%s", op);
-        OutputExpression(binaryExpression->expression2, dstType2);
-        m_writer.Write(")");
+
+		//
+		bool vectorExpression = isVectorType( binaryExpression->expression1->expressionType ) || isVectorType( binaryExpression->expression2->expressionType );
+		if( vectorExpression && isCompareOp( binaryExpression->binaryOp ))
+		{
+			switch (binaryExpression->binaryOp)
+			{
+			case HLSLBinaryOp_Less:         m_writer.Write("lessThan(");			break;
+			case HLSLBinaryOp_Greater:      m_writer.Write("greaterThan(");			break;
+			case HLSLBinaryOp_LessEqual:    m_writer.Write("lessThanEqual(");		break;
+			case HLSLBinaryOp_GreaterEqual: m_writer.Write("greaterThanEqual(");	break;
+			case HLSLBinaryOp_Equal:        m_writer.Write("equal(");				break;
+			case HLSLBinaryOp_NotEqual:     m_writer.Write("notEqual(");			break;
+			default:
+				ASSERT(0); // is so, check isCompareOp
+			}
+
+			if( isVectorType( binaryExpression->expression1->expressionType ) && isScalarType( binaryExpression->expression2->expressionType ) )
+				dstType2 = &binaryExpression->expression1->expressionType;
+			else if( isScalarType( binaryExpression->expression1->expressionType ) && isVectorType( binaryExpression->expression2->expressionType ) )
+				dstType1 = &binaryExpression->expression2->expressionType;
+			// TODO if both expressions are vector but with different dimension handle it here or in parser?
+
+			OutputExpression(binaryExpression->expression1, dstType1);
+			m_writer.Write(", ");
+			OutputExpression(binaryExpression->expression2, dstType2);
+			m_writer.Write(")");
+		}
+		else
+		{
+			switch (binaryExpression->binaryOp)
+			{
+			case HLSLBinaryOp_Add:          op = " + "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
+			case HLSLBinaryOp_Sub:          op = " - "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
+			case HLSLBinaryOp_Mul:          op = " * "; break;
+			case HLSLBinaryOp_Div:          op = " / "; break;
+			case HLSLBinaryOp_Less:         op = " < "; break;
+			case HLSLBinaryOp_Greater:      op = " > "; break;
+			case HLSLBinaryOp_LessEqual:    op = " <= "; break;
+			case HLSLBinaryOp_GreaterEqual: op = " >= "; break;
+			case HLSLBinaryOp_Equal:        op = " == "; break;
+			case HLSLBinaryOp_NotEqual:     op = " != "; break;
+			case HLSLBinaryOp_Assign:       op = " = ";  dstType2 = &binaryExpression->expressionType; break;
+			case HLSLBinaryOp_AddAssign:    op = " += "; dstType2 = &binaryExpression->expressionType; break;
+			case HLSLBinaryOp_SubAssign:    op = " -= "; dstType2 = &binaryExpression->expressionType; break;
+			case HLSLBinaryOp_MulAssign:    op = " *= "; dstType2 = &binaryExpression->expressionType; break;
+			case HLSLBinaryOp_DivAssign:    op = " /= "; dstType2 = &binaryExpression->expressionType; break;
+			case HLSLBinaryOp_And:          op = " && "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
+			case HLSLBinaryOp_Or:           op = " || "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
+			default:
+				ASSERT(0);
+			}
+			m_writer.Write("(");
+			OutputExpression(binaryExpression->expression1, dstType1);
+			m_writer.Write("%s", op);
+			OutputExpression(binaryExpression->expression2, dstType2);
+			m_writer.Write(")");
+		}
     }
     else if (expression->nodeType == HLSLNodeType_ConditionalExpression)
     {
         HLSLConditionalExpression* conditionalExpression = static_cast<HLSLConditionalExpression*>(expression);
-        m_writer.Write("((");
-        OutputExpression(conditionalExpression->condition, &kBoolType);
-        m_writer.Write(")?(");
-        OutputExpression(conditionalExpression->trueExpression);
-        m_writer.Write("):(");
-        OutputExpression(conditionalExpression->falseExpression);
-        m_writer.Write("))");
+		if( isVectorType( conditionalExpression->condition->expressionType ) )
+		{
+			m_writer.Write( "%s", m_bvecTernary );
+			m_writer.Write( "( " );
+			OutputExpression( conditionalExpression->condition );
+			m_writer.Write( ", " );
+			OutputExpression( conditionalExpression->trueExpression, &conditionalExpression->expressionType );
+			m_writer.Write( ", " );
+			OutputExpression( conditionalExpression->falseExpression, &conditionalExpression->expressionType  );
+			m_writer.Write( " )" );
+		}
+		else
+		{
+			m_writer.Write( "((" );
+			OutputExpression( conditionalExpression->condition, &kBoolType );
+			m_writer.Write( ")?(" );
+			OutputExpression( conditionalExpression->trueExpression );
+			m_writer.Write( "):(" );
+			OutputExpression( conditionalExpression->falseExpression );
+			m_writer.Write( "))" );
+		}
     }
     else if (expression->nodeType == HLSLNodeType_MemberAccess)
     {
