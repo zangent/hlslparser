@@ -711,7 +711,7 @@ void GLSLGenerator::OutputIdentifier(const char* name)
     }
     else if (String_Equal(name, "tex2Dproj"))
     {
-        name = "texture2DProj";
+        name = "textureProj";
     }
     else if (String_Equal(name, "texCUBE"))
     {
