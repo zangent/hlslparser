@@ -1166,38 +1166,62 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
 
 void GLSLGenerator::OutputDeclaration(HLSLDeclaration* declaration)
 {
-    OutputDeclaration(declaration->type, GetSafeIdentifierName(declaration->name));
-    if (declaration->assignment != NULL)
-    {
-        m_writer.Write(" = ");
-        if (declaration->type.array)
-        {
-            m_writer.Write("%s[]( ", GetTypeName(declaration->type));
-            OutputExpressionList(declaration->assignment);
-            m_writer.Write(" )");
-        }
-        else
-        {
-            OutputExpression(declaration->assignment, &declaration->type);
-        }
-    }
+	OutputDeclarationType( declaration->type );
+
+	HLSLDeclaration* lastDecl = nullptr;
+	while( declaration )
+	{
+		if( lastDecl )
+			m_writer.Write( ", " );
+
+		OutputDeclarationBody( declaration->type, GetSafeIdentifierName( declaration->name ) );
+
+		if( declaration->assignment != NULL )
+		{
+			m_writer.Write( " = " );
+			if( declaration->type.array )
+			{
+				m_writer.Write( "%s[]( ", GetTypeName( declaration->type ) );
+				OutputExpressionList( declaration->assignment );
+				m_writer.Write( " )" );
+			}
+			else
+			{
+				OutputExpression( declaration->assignment, &declaration->type );
+			}
+		}
+
+		lastDecl = declaration;
+		declaration = declaration->nextDeclaration;
+	}
 }
 
 void GLSLGenerator::OutputDeclaration(const HLSLType& type, const char* name)
 {
-    if (!type.array)
-    {
-        m_writer.Write("%s %s", GetTypeName(type), GetSafeIdentifierName(name) );
-    }
-    else
-    {
-        m_writer.Write("%s %s[", GetTypeName(type), GetSafeIdentifierName(name));
-        if (type.arraySize != NULL)
-        {
-            OutputExpression(type.arraySize);
-        }
-        m_writer.Write("]");
-    }
+	OutputDeclarationType( type );
+	OutputDeclarationBody( type, name );
+}
+
+void GLSLGenerator::OutputDeclarationType( const HLSLType& type )
+{
+	m_writer.Write( "%s ", GetTypeName( type ) );
+}
+
+void GLSLGenerator::OutputDeclarationBody( const HLSLType& type, const char* name )
+{
+	if( !type.array )
+	{
+		m_writer.Write( "%s", GetSafeIdentifierName( name ) );
+	}
+	else
+	{
+		m_writer.Write( "%s[", GetSafeIdentifierName( name ) );
+		if( type.arraySize != NULL )
+		{
+			OutputExpression( type.arraySize );
+		}
+		m_writer.Write( "]" );
+	}
 }
 
 void GLSLGenerator::Error(const char* format, ...)

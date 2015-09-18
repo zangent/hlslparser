@@ -49,6 +49,8 @@ private:
     void OutputAttributes(HLSLFunction* entryFunction);
     void OutputEntryCaller(HLSLFunction* entryFunction);
     void OutputDeclaration(HLSLDeclaration* declaration);
+	void OutputDeclarationType( const HLSLType& type );
+	void OutputDeclarationBody( const HLSLType& type, const char* name );
     void OutputDeclaration(const HLSLType& type, const char* name);
 
     void OutputSetOutAttribute(const char* semantic, const char* resultName);
