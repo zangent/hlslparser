@@ -1006,16 +1006,22 @@ void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, 
         {
             if (field->semantic != NULL && GetBuiltInSemantic(field->semantic) == NULL)
             {
-                const char* typeName = GetTypeName(field->type);            
-                m_writer.WriteLine(0, "%s %s %s%s;", attribType, typeName, prefix, field->semantic);
+                m_writer.Write( "%s ", attribType );
+				char attribName[ 64 ];
+				String_Printf( attribName, 64, "%s%s", prefix, field->semantic );
+				OutputDeclaration( field->type, attribName );
+				m_writer.EndLine(";");
             }
             field = field->nextField;
         }
     }
     else if (semantic != NULL && GetBuiltInSemantic(semantic) == NULL)
     {
-        const char* typeName = GetTypeName(type);            
-        m_writer.WriteLine(0, "%s %s %s%s;", attribType, typeName, prefix, semantic);
+		m_writer.Write( "%s ", attribType );
+		char attribName[ 64 ];
+		String_Printf( attribName, 64, "%s%s", prefix, semantic );
+		OutputDeclaration( type, attribName );
+		m_writer.EndLine(";");
     }
 }
 
