@@ -47,6 +47,7 @@ private:
     bool AcceptIdentifier(const char*& identifier);
     bool ExpectIdentifier(const char*& identifier);
     bool AcceptFloat(float& value);
+	bool AcceptHalf( float& value );
     bool AcceptInt(int& value);
     bool AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typeName, int* typeFlags);
     bool ExpectType(bool allowVoid, HLSLBaseType& type, const char*& typeName, int* typeFlags);

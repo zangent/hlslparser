@@ -427,12 +427,14 @@ const Intrinsic _intrinsic[] =
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float2 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float3 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float4 ),
+		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float2x2 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float3x3 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float4x4 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half2 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half3 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half4 ),
+		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half2x2 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half3x3 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half4x4 ),
         Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Bool ),
@@ -493,9 +495,11 @@ const Intrinsic _intrinsic[] =
         INTRINSIC_FLOAT2_FUNCTION( "min" ),
 
         INTRINSIC_FLOAT2_FUNCTION( "mul" ),
+		Intrinsic( "mul", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2x2 ),
         Intrinsic( "mul", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3x3 ),
         Intrinsic( "mul", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float4x4 ),
 
+		Intrinsic( "transpose", HLSLBaseType_Float2x2, HLSLBaseType_Float2x2 ),
         Intrinsic( "transpose", HLSLBaseType_Float3x3, HLSLBaseType_Float3x3 ),
         Intrinsic( "transpose", HLSLBaseType_Float4x4, HLSLBaseType_Float4x4 ),
 
@@ -576,6 +580,7 @@ const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] =
         { "float2",             NumericType_Float,      2, 1, 1,  0 },      // HLSLBaseType_Float2
         { "float3",             NumericType_Float,      3, 1, 3,  0 },      // HLSLBaseType_Float3
         { "float4",             NumericType_Float,      4, 1, 4,  0 },      // HLSLBaseType_Float4
+		{ "float2x2",			NumericType_Float,		2, 2, 2,  0 },		// HLSLBaseType_Float2x2
         { "float3x3",           NumericType_Float,      3, 2, 3,  0 },      // HLSLBaseType_Float3x3
         { "float4x4",           NumericType_Float,      4, 2, 4,  0 },      // HLSLBaseType_Float4x4
 
@@ -583,10 +588,14 @@ const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] =
         { "half2",              NumericType_Half,       2, 1, 1,  1 },      // HLSLBaseType_Half2
         { "half3",              NumericType_Half,       3, 1, 1,  1 },      // HLSLBaseType_Half3
         { "half4",              NumericType_Half,       4, 1, 1,  1 },      // HLSLBaseType_Half4
+		{ "half2x2",		NumericType_Float,		 2, 2, 2, 0 },		// HLSLBaseType_Half2x2
         { "half3x3",            NumericType_Half,       3, 2, 3,  1 },      // HLSLBaseType_Half3x3
         { "half4x4",            NumericType_Half,       4, 2, 4,  1 },      // HLSLBaseType_Half4x4
 
         { "bool",               NumericType_Bool,       1, 0, 1,  4 },      // HLSLBaseType_Bool
+		{ "bool2",				NumericType_Bool,		2, 1, 1,  4 },      // HLSLBaseType_Bool2
+		{ "bool3",				NumericType_Bool,		3, 1, 1,  4 },      // HLSLBaseType_Bool3
+		{ "bool4",				NumericType_Bool,		4, 1, 1,  4 },      // HLSLBaseType_Bool4
 
         { "int",                NumericType_Int,        1, 0, 1,  3 },      // HLSLBaseType_Int
         { "int2",               NumericType_Int,        2, 1, 1,  3 },      // HLSLBaseType_Int2
@@ -610,173 +619,239 @@ const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] =
 
 HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_NumericCount] = 
     {
-        {
-            HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, HLSLBaseType_Float, HLSLBaseType_Float2,
-            HLSLBaseType_Float3, HLSLBaseType_Float4, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
-            HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3,
-            HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3,
-            HLSLBaseType_Float4
+        { // HLSLBaseType_Float
+            HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4, 
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, 
+			HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4, 
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, 
+			HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
+			HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
+			HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4
         },
-        {
+        { // HLSLBaseType_Float2
             HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2, HLSLBaseType_Float2,
-            HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
-            HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
-            HLSLBaseType_Float2
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
+			HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, 
+			HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2
         },
-        {
+        { // HLSLBaseType_Float3
             HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3, HLSLBaseType_Float2,
-            HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3,
-            HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3,
-            HLSLBaseType_Float3
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3,
+			HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3, 
+			HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3
         },
-        {
+        { // HLSLBaseType_Float4
             HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4, HLSLBaseType_Float2,
-            HLSLBaseType_Float3, HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3,
-            HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3,
-            HLSLBaseType_Float4
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
+			HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4, 
+			HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4
         },
-        {
+		{ // HLSLBaseType_Float2x2
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x2,
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x2,
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+		},
+        { // HLSLBaseType_Float3x3
             HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float3x3, HLSLBaseType_Float3x3, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x3, HLSLBaseType_Float3x3,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown, HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x3,
+			HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x3,
+			HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
         },
-        {
+		{ // HLSLBaseType_Float4x4
             HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, HLSLBaseType_Float4x4, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
-            HLSLBaseType_Float4x4, HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown, HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
         },
-        {
-            HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, HLSLBaseType_Half, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half4, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
-            HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3,
-            HLSLBaseType_Half4, HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3,
-            HLSLBaseType_Half4
-        },
-        {
+        { // HLSLBaseType_Half
+			HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4,
+			HLSLBaseType_Half2x2, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4,
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4,
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4
+		},
+        { // HLSLBaseType_Half2
             HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2, HLSLBaseType_Half2,
-            HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2,
-            HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2,
-            HLSLBaseType_Half2
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2,
+			HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, 
+			HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2
         },
-        {
+        { // HLSLBaseType_Half3
             HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3,
-            HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3,
-            HLSLBaseType_Half3
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half3, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half3,
+			HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half3, 
+			HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half3
         },
-        {
+        { // HLSLBaseType_Half4
             HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3,
-            HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3,
-            HLSLBaseType_Half4
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4,
+			HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4, 
+			HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4
         },
-        {
+		{ // HLSLBaseType_Half2x2
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x2,
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x2, HLSLBaseType_Half2x2, HLSLBaseType_Half2x2,
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+		},
+		{ // HLSLBaseType_Half3x3
             HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float3x3, HLSLBaseType_Half3x3, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Half3x3,
-            HLSLBaseType_Half3x3, HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x3,
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Half2x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x3,
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
         },
-        {
+        { // HLSLBaseType_Half4x4
             HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, HLSLBaseType_Half4x4, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
-            HLSLBaseType_Half4x4, HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown, HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Unknown
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Half2x2, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
         },
-        {
+		{ // HLSLBaseType_Bool
             HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, HLSLBaseType_Half, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half4, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
-            HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int2, HLSLBaseType_Int3,
-            HLSLBaseType_Int4, HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint4
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4, 
+			HLSLBaseType_Half2x2, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
+			HLSLBaseType_Int, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int4,
+			HLSLBaseType_Int, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int4, 
+			HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4
         },
-        {
+		{ // HLSLBaseType_Bool2
+			HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2,
+			HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2,
+			HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2
+		},
+		{ // HLSLBaseType_Bool3
+			HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half3,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Int3, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int3,
+			HLSLBaseType_Int3, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int3,
+			HLSLBaseType_Uint3, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint3
+		},
+		{ // HLSLBaseType_Bool4
+			HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Int4, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int4,
+			HLSLBaseType_Int4, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int4,
+			HLSLBaseType_Uint4, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4
+		},
+		{ // HLSLBaseType_Int
             HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, HLSLBaseType_Half, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half4, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
-            HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int2, HLSLBaseType_Int3,
-            HLSLBaseType_Int4, HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint4
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4, 
+			HLSLBaseType_Half2x2, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
+			HLSLBaseType_Int, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int4,
+			HLSLBaseType_Int, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int4, 
+			HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4
         },
-        {
+        { // HLSLBaseType_Int2
             HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2, HLSLBaseType_Half2,
-            HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2,
-            HLSLBaseType_Int2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2,
-            HLSLBaseType_Uint2
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2,
+			HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Int2, 
+			HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2
         },
-        {
+        { // HLSLBaseType_Int3
             HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Int3, HLSLBaseType_Int3, HLSLBaseType_Int2, HLSLBaseType_Int3,
-            HLSLBaseType_Int3, HLSLBaseType_Uint3, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint3
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half3, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Int3, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int3,
+			HLSLBaseType_Int3, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int3, 
+			HLSLBaseType_Uint3, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint3
         },
-        {
+        { // HLSLBaseType_Int4
             HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Int4, HLSLBaseType_Int4, HLSLBaseType_Int2, HLSLBaseType_Int3,
-            HLSLBaseType_Int4, HLSLBaseType_Uint4, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint4
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Int4, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int4,
+			HLSLBaseType_Int4, HLSLBaseType_Int2, HLSLBaseType_Int3, HLSLBaseType_Int4, 
+			HLSLBaseType_Uint4, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4
         },
-        {
+        { // HLSLBaseType_Uint
             HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Float3x3, HLSLBaseType_Float4x4, HLSLBaseType_Half, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half4, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
-            HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint4, HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint4
+			HLSLBaseType_Float2x2, HLSLBaseType_Float3x3, HLSLBaseType_Float4x4,
+			HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4, 
+			HLSLBaseType_Half2x2, HLSLBaseType_Half3x3, HLSLBaseType_Half4x4,
+			HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4,
+			HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4, 
+			HLSLBaseType_Uint, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4
         },
-        {
+        { // HLSLBaseType_Uint2
             HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2, HLSLBaseType_Half2,
-            HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2,
-            HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2,
-            HLSLBaseType_Uint2
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2,
+			HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, 
+			HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint2
         },
-        {
+        { // HLSLBaseType_Uint3
             HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Uint3, HLSLBaseType_Uint3, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint3, HLSLBaseType_Uint3, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint3
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half3, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Uint3, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint3,
+			HLSLBaseType_Uint3, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint3, 
+			HLSLBaseType_Uint3, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint3
         },
-        {
+        { // HLSLBaseType_Uint4
             HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4,
-            HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4, HLSLBaseType_Half2,
-            HLSLBaseType_Half3, HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-            HLSLBaseType_Uint4, HLSLBaseType_Uint4, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint4, HLSLBaseType_Uint4, HLSLBaseType_Uint2, HLSLBaseType_Uint3,
-            HLSLBaseType_Uint4
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, 
+			HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half4, 
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Uint4, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4,
+			HLSLBaseType_Uint4, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4, 
+			HLSLBaseType_Uint4, HLSLBaseType_Uint2, HLSLBaseType_Uint3, HLSLBaseType_Uint4
         },
     };
 
@@ -1017,9 +1092,12 @@ static bool GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, 
     case HLSLBinaryOp_LessEqual:
     case HLSLBinaryOp_GreaterEqual:
     case HLSLBinaryOp_Equal:
-    case HLSLBinaryOp_NotEqual:
-        result.baseType = HLSLBaseType_Bool;
-        break;
+	case HLSLBinaryOp_NotEqual:
+		{
+			int numComponents = std::max( _baseTypeDescriptions[ type1.baseType ].numComponents, _baseTypeDescriptions[ type2.baseType ].numComponents );
+			result.baseType = HLSLBaseType( HLSLBaseType_Bool + numComponents - 1 );
+			break;
+		}
     default:
         result.baseType = _binaryOpTypeLookup[type1.baseType - HLSLBaseType_FirstNumeric][type2.baseType - HLSLBaseType_FirstNumeric];
         break;
@@ -1125,6 +1203,17 @@ bool HLSLParser::AcceptFloat(float& value)
         return true;
     }
     return false;
+}
+
+bool HLSLParser::AcceptHalf( float& value )
+{
+	if( m_tokenizer.GetToken() == HLSLToken_HalfLiteral )
+	{
+		value = m_tokenizer.GetFloat();
+		m_tokenizer.Next();
+		return true;
+	}
+	return false;
 }
 
 bool HLSLParser::AcceptInt(int& value)
@@ -1851,6 +1940,10 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
         return false;
     }
 
+	// reset priority cause openned parenthesis
+	if( needsEndParen )
+		priority = 0;
+
     while (1)
     {
         HLSLBinaryOp binaryOp;
@@ -1910,6 +2003,13 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
         {
             break;
         }
+
+		if( needsEndParen )
+		{
+			if( !Expect( ')' ) )
+				return false;
+			needsEndParen = false;
+		}
     }
 
     return !needsEndParen || Expect(')');
@@ -2014,6 +2114,16 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
             expression = literalExpression;
             return true;
         }
+		if( AcceptHalf( fValue ) )
+		{
+			HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>( fileName, line );
+			literalExpression->type = HLSLBaseType_Half;
+			literalExpression->fValue = fValue;
+			literalExpression->expressionType.baseType = literalExpression->type;
+			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
+			expression = literalExpression;
+			return true;
+		}
         else if (AcceptInt(iValue))
         {
             HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>(fileName, line);
@@ -2145,6 +2255,9 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
                 case HLSLBaseType_Float4:
                     arrayAccess->expressionType.baseType = HLSLBaseType_Float;
                     break;
+				case HLSLBaseType_Float2x2:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Float2;
+					break;
                 case HLSLBaseType_Float3x3:
                     arrayAccess->expressionType.baseType = HLSLBaseType_Float3;
                     break;
@@ -2156,6 +2269,9 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
                 case HLSLBaseType_Half4:
                     arrayAccess->expressionType.baseType = HLSLBaseType_Half;
                     break;
+				case HLSLBaseType_Half2x2:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Half2;
+					break;
                 case HLSLBaseType_Half3x3:
                     arrayAccess->expressionType.baseType = HLSLBaseType_Half3;
                     break;
@@ -2970,6 +3086,9 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
     case HLSLToken_Float4:
         type = HLSLBaseType_Float4;
         break;
+	case HLSLToken_Float2x2:
+		type = HLSLBaseType_Float2x2;
+		break;
     case HLSLToken_Float3x3:
         type = HLSLBaseType_Float3x3;
         break;
@@ -2988,6 +3107,9 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
     case HLSLToken_Half4:
         type = HLSLBaseType_Half4;
         break;
+	case HLSLToken_Half2x2:
+		type = HLSLBaseType_Half2x2;
+		break;
     case HLSLToken_Half3x3:
         type = HLSLBaseType_Half3x3;
         break;
@@ -2997,6 +3119,15 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
     case HLSLToken_Bool:
         type = HLSLBaseType_Bool;
         break;
+	case HLSLToken_Bool2:
+		type = HLSLBaseType_Bool2;
+		break;
+	case HLSLToken_Bool3:
+		type = HLSLBaseType_Bool3;
+		break;
+	case HLSLToken_Bool4:
+		type = HLSLBaseType_Bool4;
+		break;
     case HLSLToken_Int:
         type = HLSLBaseType_Int;
         break;

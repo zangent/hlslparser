@@ -49,6 +49,8 @@ private:
     void OutputAttributes(HLSLFunction* entryFunction);
     void OutputEntryCaller(HLSLFunction* entryFunction);
     void OutputDeclaration(HLSLDeclaration* declaration);
+	void OutputDeclarationType( const HLSLType& type );
+	void OutputDeclarationBody( const HLSLType& type, const char* name );
     void OutputDeclaration(const HLSLType& type, const char* name);
 
     void OutputSetOutAttribute(const char* semantic, const char* resultName);
@@ -87,10 +89,12 @@ private:
     char                m_tex2DbiasFunction[64];
     char                m_tex3DlodFunction[64];
     char                m_texCUBEbiasFunction[64];
+	char                m_texCUBElodFunction[ 64 ];
     char                m_scalarSwizzle2Function[64];
     char                m_scalarSwizzle3Function[64];
     char                m_scalarSwizzle4Function[64];
     char                m_sinCosFunction[64];
+	char                m_bvecTernary[ 64 ];
 
     bool                m_error;
 

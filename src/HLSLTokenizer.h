@@ -13,15 +13,20 @@ enum HLSLToken
     HLSLToken_Float2,
     HLSLToken_Float3,
     HLSLToken_Float4,
+	HLSLToken_Float2x2,
     HLSLToken_Float3x3,
     HLSLToken_Float4x4,
     HLSLToken_Half,
     HLSLToken_Half2,
     HLSLToken_Half3,
     HLSLToken_Half4,
+	HLSLToken_Half2x2,
     HLSLToken_Half3x3,
     HLSLToken_Half4x4,
     HLSLToken_Bool,
+	HLSLToken_Bool2,
+	HLSLToken_Bool3,
+	HLSLToken_Bool4,
     HLSLToken_Int,
     HLSLToken_Int2,
     HLSLToken_Int3,
@@ -85,6 +90,7 @@ enum HLSLToken
 
     // Other token types.
     HLSLToken_FloatLiteral,
+	HLSLToken_HalfLiteral,
     HLSLToken_IntLiteral,
     HLSLToken_Identifier,
 
@@ -135,6 +141,7 @@ private:
 
     bool SkipWhitespace();
     bool SkipComment();
+	bool SkipPragmaDirective();
     bool ScanNumber();
     bool ScanLineDirective();
 
