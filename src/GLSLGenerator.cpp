@@ -37,7 +37,9 @@ const char* GLSLGenerator::s_reservedWord[] =
         "input",
         "mod",
         "mix",
-        "fract"
+        "fract",
+        "dFdx",
+        "dFdy",
     };
 
 static const char* GetTypeName(const HLSLType& type)
@@ -755,6 +757,14 @@ void GLSLGenerator::OutputIdentifier(const char* name)
     else if (String_Equal(name, "frac"))
     {
         name = "fract";
+    }
+    else if (String_Equal(name, "ddx"))
+    {
+        name = "dFdx";
+    }
+    else if (String_Equal(name, "ddy"))
+    {
+        name = "dFdy";
     }
     else 
     {
