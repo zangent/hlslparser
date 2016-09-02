@@ -153,6 +153,7 @@ bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* en
     bool usesClip = m_tree->GetContainsString("clip");
     bool usesTex2Dlod = m_tree->GetContainsString("tex2Dlod");
     bool usesTex2Dbias = m_tree->GetContainsString("tex2Dbias");
+    bool usesTex2Dgrad = m_tree->GetContainsString("tex2Dgrad");
     bool usesTex3Dlod = m_tree->GetContainsString("tex3Dlod");
     bool usestexCUBEbias = m_tree->GetContainsString("texCUBEbias");
 	bool usestexCUBElod = m_tree->GetContainsString( "texCUBElod" );
@@ -162,6 +163,7 @@ bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* en
     ChooseUniqueName("clip", m_clipFunction, sizeof(m_clipFunction));
     ChooseUniqueName("tex2Dlod", m_tex2DlodFunction, sizeof(m_tex2DlodFunction));
     ChooseUniqueName("tex2Dbias", m_tex2DbiasFunction, sizeof(m_tex2DbiasFunction));
+    ChooseUniqueName("tex2Dgrad", m_tex2DgradFunction, sizeof(m_tex2DgradFunction));
     ChooseUniqueName("tex3Dlod", m_tex3DlodFunction, sizeof(m_tex3DlodFunction));
     ChooseUniqueName("texCUBEbias", m_texCUBEbiasFunction, sizeof(m_texCUBEbiasFunction));
 	ChooseUniqueName( "texCUBElod", m_texCUBElodFunction, sizeof( m_texCUBElodFunction ) );
@@ -229,6 +231,12 @@ bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* en
     if (usesTex2Dlod)
     {
         m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return textureLod(sampler, texCoord.xy, texCoord.w);  }", m_tex2DlodFunction );
+    }
+
+    // Output the special function used to emulate tex2Dgrad.
+    if (usesTex2Dgrad)
+    {
+        m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec2 texCoord, vec2 dx, vec2 dy) { return textureGrad(sampler, texCoord, dx, dy);  }", m_tex2DgradFunction );
     }
 
     // Output the special function used to emulate tex2Dbias.
@@ -726,6 +734,10 @@ void GLSLGenerator::OutputIdentifier(const char* name)
     else if (String_Equal(name, "tex2Dlod"))
     {
         name = m_tex2DlodFunction;
+    }
+    else if (String_Equal(name, "tex2Dgrad"))
+    {
+        name = m_tex2DgradFunction;
     }
     else if (String_Equal(name, "texCUBEbias"))
     {
