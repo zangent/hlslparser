@@ -727,6 +727,10 @@ void GLSLGenerator::OutputIdentifier(const char* name)
     {
         name = "texture";
     }
+    else if (String_Equal(name, "tex3D"))
+    {
+        name = "texture";
+    }
     else if (String_Equal(name, "clip"))
     {
         name = m_clipFunction;
