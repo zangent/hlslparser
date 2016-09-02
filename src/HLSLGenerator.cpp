@@ -78,7 +78,7 @@ static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* 
 }
 
 HLSLGenerator::HLSLGenerator(Allocator* allocator) :
-    m_writer(allocator)
+    m_writer(allocator, /* writeFileNames= */ true)
 {
     m_tree                          = NULL;
     m_entryName                     = NULL;

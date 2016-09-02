@@ -26,7 +26,7 @@ class CodeWriter
 
 public:
 
-    explicit CodeWriter(Allocator* allocator);
+    explicit CodeWriter(Allocator* allocator, bool writeFileNames);
 
     void BeginLine(int indent, const char* fileName = NULL, int lineNumber = -1);
     void Write(const char* format, ...);

@@ -20,14 +20,14 @@ namespace M4
 
 static const int _maxLineLength = 2048;
 
-CodeWriter::CodeWriter(Allocator* allocator) :
+CodeWriter::CodeWriter(Allocator* allocator, bool writeFileNames) :
     m_allocator(allocator)
 {
     m_currentLine       = 1;
     m_currentFileName   = NULL;
     m_spacesPerIndent   = 4;
     m_writeLines        = true;
-    m_writeFileNames    = true;
+    m_writeFileNames    = writeFileNames;
 }
 
 void CodeWriter::BeginLine(int indent, const char* fileName, int lineNumber)

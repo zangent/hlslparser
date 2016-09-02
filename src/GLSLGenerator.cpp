@@ -119,7 +119,7 @@ static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* 
 }
 
 GLSLGenerator::GLSLGenerator(Allocator* allocator) :
-    m_writer(allocator)
+    m_writer(allocator, /* writeFileNames= */ false)
 {
     m_tree                      = NULL;
     m_entryName                 = NULL;
