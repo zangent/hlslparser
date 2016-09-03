@@ -16,6 +16,7 @@
 #include "Engine.h"
 
 #include <stdarg.h>
+#include <string.h>
 
 namespace M4
 {

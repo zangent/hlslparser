@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <ctype.h>
+#include <string.h>
 
 namespace M4
 {
