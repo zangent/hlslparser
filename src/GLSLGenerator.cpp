@@ -739,6 +739,10 @@ void GLSLGenerator::OutputIdentifier(const char* name)
     {
         name = m_tex2DlodFunction;
     }
+    else if (String_Equal(name, "tex2Dbias"))
+    {
+        name = m_tex2DbiasFunction;
+    }
     else if (String_Equal(name, "tex2Dgrad"))
     {
         name = m_tex2DgradFunction;
