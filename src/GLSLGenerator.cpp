@@ -810,6 +810,9 @@ void GLSLGenerator::OutputArguments(HLSLArgument* argument)
         case HLSLArgumentModifier_In:
             m_writer.Write("in ");
             break;
+        case HLSLArgumentModifier_Out:
+            m_writer.Write("out ");
+            break;
         case HLSLArgumentModifier_Inout:
             m_writer.Write("inout ");
             break;
@@ -1062,11 +1065,15 @@ void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, 
 
 void GLSLGenerator::OutputAttributes(HLSLFunction* entryFunction)
 {
-    // Write out the input attributes to the shader.
+    // Write out the input/output attributes to the shader.
     HLSLArgument* argument = entryFunction->argument;
     while (argument != NULL)
     {
-        OutputAttribute(argument->type, argument->semantic, "in", m_inAttribPrefix);
+        if (argument->modifier == HLSLArgumentModifier_None || argument->modifier == HLSLArgumentModifier_In)
+            OutputAttribute(argument->type, argument->semantic, "in", m_inAttribPrefix);
+        if (argument->modifier == HLSLArgumentModifier_Out)
+            OutputAttribute(argument->type, argument->semantic, "out", m_outAttribPrefix);
+
         argument = argument->nextArgument;
     }
 
@@ -1120,6 +1127,12 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
     HLSLArgument* argument = entryFunction->argument;
     while (argument != NULL)
     {
+        if (argument->modifier == HLSLArgumentModifier_Out)
+        {
+            argument = argument->nextArgument;
+            continue;
+        }
+
         m_writer.BeginLine(1);
         OutputDeclaration(argument->type, argument->name);
         m_writer.EndLine(";");
@@ -1167,7 +1180,9 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
 
     // Call the original entry function.
     m_writer.BeginLine(1);
-    m_writer.Write("%s %s = %s(", GetTypeName(entryFunction->returnType), resultName, m_entryName);
+    if (entryFunction->returnType.baseType != HLSLBaseType_Void)
+        m_writer.Write("%s %s = ", GetTypeName(entryFunction->returnType), resultName);
+    m_writer.Write("%s(", m_entryName);
 
     int numArgs = 0;
     argument = entryFunction->argument;
@@ -1177,7 +1192,17 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
         {
             m_writer.Write(", ");
         }
-        m_writer.Write("%s", GetSafeIdentifierName(argument->name));
+
+        if (argument->modifier == HLSLArgumentModifier_Out)
+        {
+            if (argument->semantic)
+                m_writer.Write("%s%s", m_outAttribPrefix, argument->semantic);
+        }
+        else
+        {
+            m_writer.Write("%s", GetSafeIdentifierName(argument->name));
+        }
+
         argument = argument->nextArgument;
         ++numArgs;
     }
