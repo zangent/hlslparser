@@ -826,6 +826,11 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
 
     while (statement != NULL)
     {
+        if (statement->hidden) 
+        {
+            statement = statement->nextStatement;
+            continue;
+        }
 
         if (statement->nodeType == HLSLNodeType_Declaration)
         {
