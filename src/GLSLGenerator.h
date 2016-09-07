@@ -29,7 +29,7 @@ public:
 
     explicit GLSLGenerator(Allocator* allocator);
     
-    bool Generate(const HLSLTree* tree, Target target, const char* entryName);
+    bool Generate(HLSLTree* tree, Target target, const char* entryName);
     const char* GetResult() const;
 
 private:
@@ -61,6 +61,8 @@ private:
 
     void OutputSetOutAttribute(const char* semantic, const char* resultName);
 
+    void OutputZeroLiteral(const HLSLType& type);
+
     HLSLFunction* FindFunction(HLSLRoot* root, const char* name);
     HLSLStruct* FindStruct(HLSLRoot* root, const char* name);
 
@@ -83,7 +85,7 @@ private:
 
     CodeWriter          m_writer;
 
-    const HLSLTree*     m_tree;
+    HLSLTree*           m_tree;
     const char*         m_entryName;
     Target              m_target;
     bool                m_outputPosition;

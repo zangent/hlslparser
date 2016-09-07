@@ -122,7 +122,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_outputPosition            = false;
 }
 
-bool GLSLGenerator::Generate(const HLSLTree* tree, Target target, const char* entryName)
+bool GLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName)
 {
 
     m_tree      = tree;
@@ -363,10 +363,20 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
     else if (expression->nodeType == HLSLNodeType_CastingExpression)
     {
         HLSLCastingExpression* castingExpression = static_cast<HLSLCastingExpression*>(expression);
-        OutputDeclaration(castingExpression->type, "");
-        m_writer.Write("(");
-        OutputExpression(castingExpression->expression);
-        m_writer.Write(")");
+
+        int value;
+
+        if (m_tree->GetExpressionValue(castingExpression->expression, value) && value == 0)
+        {
+            OutputZeroLiteral(castingExpression->type);
+        }
+        else
+        {
+            OutputDeclaration(castingExpression->type, "");
+            m_writer.Write("(");
+            OutputExpression(castingExpression->expression);
+            m_writer.Write(")");
+        }
     }
     else if (expression->nodeType == HLSLNodeType_LiteralExpression)
     {
@@ -1271,6 +1281,36 @@ void GLSLGenerator::OutputDeclarationBody( const HLSLType& type, const char* nam
 		}
 		m_writer.Write( "]" );
 	}
+}
+
+void GLSLGenerator::OutputZeroLiteral(const HLSLType& type)
+{
+    if (type.baseType == HLSLBaseType_UserDefined)
+    {
+        HLSLStruct * structType = m_tree->FindGlobalStruct(GetTypeName(type));
+        if (!structType)
+        {
+            Error("Unknown struct %s", GetTypeName(type));
+            return;
+        }
+
+        OutputDeclaration(type, "");
+        m_writer.Write("(");
+
+        for (HLSLStructField* field = structType->field; field; field = field->nextField)
+        {
+            if (field != structType->field)
+                m_writer.Write(", ");
+
+            OutputZeroLiteral(field->type);
+        }
+
+        m_writer.Write(")");
+    }
+    else
+    {
+        m_writer.Write("%s(0)", GetTypeName(type));
+    }
 }
 
 void GLSLGenerator::Error(const char* format, ...)
