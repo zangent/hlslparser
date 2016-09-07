@@ -1317,6 +1317,9 @@ bool GLSLGenerator::ChooseUniqueName(const char* base, char* dst, int dstLength)
 
 const char* GLSLGenerator::GetBuiltInSemantic(const char* semantic, AttributeModifier modifier)
 {
+    if (m_target == Target_VertexShader && modifier == AttributeModifier_Out && String_EqualNoCase(semantic, "POSITION"))
+        return "gl_Position";
+
     if (m_target == Target_VertexShader && modifier == AttributeModifier_Out && String_EqualNoCase(semantic, "SV_POSITION"))
         return "gl_Position";
 
