@@ -88,6 +88,7 @@ enum HLSLBaseType
     HLSLBaseType_SamplerCube,
     HLSLBaseType_Sampler2DShadow,
     HLSLBaseType_Sampler2DMS,
+    HLSLBaseType_Sampler2DArray,
     HLSLBaseType_UserDefined,       // struct
     
     HLSLBaseType_Count,
@@ -101,7 +102,8 @@ inline bool IsSamplerType(HLSLBaseType baseType)
            baseType == HLSLBaseType_Sampler3D ||
            baseType == HLSLBaseType_SamplerCube ||
            baseType == HLSLBaseType_Sampler2DShadow ||
-           baseType == HLSLBaseType_Sampler2DMS;
+           baseType == HLSLBaseType_Sampler2DMS ||
+           baseType == HLSLBaseType_Sampler2DArray;
 }
 
 inline bool isScalarType( HLSLBaseType baseType )

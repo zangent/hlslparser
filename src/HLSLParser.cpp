@@ -538,6 +538,8 @@ const Intrinsic _intrinsic[] =
         Intrinsic("tex2DMSfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2DMS, HLSLBaseType_Int2, HLSLBaseType_Int),
         Intrinsic("tex2DMSsize", HLSLBaseType_Int3, HLSLBaseType_Sampler2DMS),
 
+        Intrinsic("tex2DArray", HLSLBaseType_Float4, HLSLBaseType_Sampler2DArray, HLSLBaseType_Float3),
+
         Intrinsic("tex3D",     HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float3),
         Intrinsic("tex3Dlod",  HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4),
         Intrinsic("tex3Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4),
@@ -615,6 +617,7 @@ const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] =
         { "samplerCUBE",        NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_SamplerCube
         { "sampler2DShadow",    NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler2DShadow
         { "sampler2DMS",        NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler2DMS
+        { "sampler2DArray",     NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler2DArray
         { "user defined",       NumericType_NaN,        1, 0, 0, -1 }       // HLSLBaseType_UserDefined
     };
 
@@ -3173,6 +3176,9 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typ
         break;
     case HLSLToken_Sampler2DMS:
         type = HLSLBaseType_Sampler2DMS;
+        break;
+    case HLSLToken_Sampler2DArray:
+        type = HLSLBaseType_Sampler2DArray;
         break;
     }
     if (type != HLSLBaseType_Void)
