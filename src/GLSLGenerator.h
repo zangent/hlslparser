@@ -34,6 +34,12 @@ public:
 
 private:
 
+    enum AttributeModifier
+    {
+        AttributeModifier_In,
+        AttributeModifier_Out,
+    };
+
     void OutputExpressionList(HLSLExpression* expression, HLSLArgument* argument = NULL);
     void OutputExpression(HLSLExpression* expression, const HLSLType* dstType = NULL);
     void OutputIdentifier(const char* name);
@@ -45,7 +51,7 @@ private:
      */
     void OutputStatements(int indent, HLSLStatement* statement, const HLSLType* returnType = NULL);
 
-    void OutputAttribute(const HLSLType& type, const char* semantic, const char* attribType, const char* prefix);
+    void OutputAttribute(const HLSLType& type, const char* semantic, AttributeModifier modifier);
     void OutputAttributes(HLSLFunction* entryFunction);
     void OutputEntryCaller(HLSLFunction* entryFunction);
     void OutputDeclaration(HLSLDeclaration* declaration);
@@ -67,6 +73,8 @@ private:
     /** Generates a name of the format "base+n" where n is an integer such that the name
      * isn't used in the syntax tree. */
     bool ChooseUniqueName(const char* base, char* dst, int dstLength) const;
+
+    const char* GetBuiltInSemantic(const char* semantic, AttributeModifier modifier);
 
 private:
 

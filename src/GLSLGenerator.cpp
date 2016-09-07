@@ -23,14 +23,6 @@ namespace M4
 
 static const HLSLType kBoolType(HLSLBaseType_Bool);
 
-// http://www.opengl.org/registry/doc/GLSLangSpec.Full.1.40.08.pdf
-
-static const char* _builtInSemantics[] = 
-    {
-        "SV_POSITION",  "gl_Position",
-        "DEPTH",        "gl_FragDepth",
-    };
-
 // These are reserved words in GLSL that aren't reserved in HLSL.
 const char* GLSLGenerator::s_reservedWord[] =
     {
@@ -88,19 +80,6 @@ static const char* GetTypeName(const HLSLType& type)
 static bool GetCanImplicitCast(const HLSLType& srcType, const HLSLType& dstType)
 {
     return srcType.baseType == dstType.baseType;
-}
-
-static const char* GetBuiltInSemantic(const char* semantic)
-{
-    int numBuiltInSemantics = sizeof(_builtInSemantics) / (2 * sizeof(const char*));
-    for (int i = 0; i < numBuiltInSemantics; ++i)
-    {
-        if (String_EqualNoCase(semantic, _builtInSemantics[i * 2 + 0]))
-        {
-            return _builtInSemantics[i * 2 + 1];
-        }
-    }
-    return NULL;
 }
 
 static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* expression[], int maxArguments)
@@ -1031,8 +1010,11 @@ HLSLStruct* GLSLGenerator::FindStruct(HLSLRoot* root, const char* name)
     return NULL;
 }
 
-void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, const char* attribType, const char* prefix)
+void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, AttributeModifier modifier)
 {
+    const char* attribType = (modifier == AttributeModifier_In) ? "in" : "out";
+    const char* prefix = (modifier == AttributeModifier_In) ? m_inAttribPrefix : m_outAttribPrefix;
+
     HLSLRoot* root = m_tree->GetRoot();
     if (type.baseType == HLSLBaseType_UserDefined)
     {
@@ -1043,7 +1025,7 @@ void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, 
         HLSLStructField* field = structDeclaration->field;
         while (field != NULL)
         {
-            if (field->semantic != NULL && GetBuiltInSemantic(field->semantic) == NULL)
+            if (field->semantic != NULL && GetBuiltInSemantic(field->semantic, modifier) == NULL)
             {
                 m_writer.Write( "%s ", attribType );
 				char attribName[ 64 ];
@@ -1054,7 +1036,7 @@ void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, 
             field = field->nextField;
         }
     }
-    else if (semantic != NULL && GetBuiltInSemantic(semantic) == NULL)
+    else if (semantic != NULL && GetBuiltInSemantic(semantic, modifier) == NULL)
     {
 		m_writer.Write( "%s ", attribType );
 		char attribName[ 64 ];
@@ -1071,20 +1053,20 @@ void GLSLGenerator::OutputAttributes(HLSLFunction* entryFunction)
     while (argument != NULL)
     {
         if (argument->modifier == HLSLArgumentModifier_None || argument->modifier == HLSLArgumentModifier_In)
-            OutputAttribute(argument->type, argument->semantic, "in", m_inAttribPrefix);
+            OutputAttribute(argument->type, argument->semantic, AttributeModifier_In);
         if (argument->modifier == HLSLArgumentModifier_Out)
-            OutputAttribute(argument->type, argument->semantic, "out", m_outAttribPrefix);
+            OutputAttribute(argument->type, argument->semantic, AttributeModifier_Out);
 
         argument = argument->nextArgument;
     }
 
     // Write out the output attributes from the shader.
-    OutputAttribute(entryFunction->returnType, entryFunction->semantic, "out", m_outAttribPrefix);
+    OutputAttribute(entryFunction->returnType, entryFunction->semantic, AttributeModifier_Out);
 }
 
 void GLSLGenerator::OutputSetOutAttribute(const char* semantic, const char* resultName)
 {
-    const char* builtInSemantic = GetBuiltInSemantic(semantic);
+    const char* builtInSemantic = GetBuiltInSemantic(semantic, AttributeModifier_Out);
     if (builtInSemantic != NULL)
     {
         if (String_Equal(builtInSemantic, "gl_Position"))
@@ -1148,7 +1130,7 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
             {
                 if (field->semantic != NULL)
                 {
-                    const char* builtInSemantic = GetBuiltInSemantic(field->semantic);
+                    const char* builtInSemantic = GetBuiltInSemantic(field->semantic, AttributeModifier_In);
                     if (builtInSemantic)
                     {
                         m_writer.WriteLine(1, "%s.%s = %s;", GetSafeIdentifierName(argument->name), GetSafeIdentifierName(field->name), builtInSemantic);
@@ -1163,7 +1145,7 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
         }
         else if (argument->semantic != NULL)
         {
-            const char* builtInSemantic = GetBuiltInSemantic(argument->semantic);
+            const char* builtInSemantic = GetBuiltInSemantic(argument->semantic, AttributeModifier_In);
             if (builtInSemantic)
             {
                 m_writer.WriteLine(1, "%s = %s;", GetSafeIdentifierName(argument->name), builtInSemantic);
@@ -1331,6 +1313,20 @@ bool GLSLGenerator::ChooseUniqueName(const char* base, char* dst, int dstLength)
         }
     }
     return false;
+}
+
+const char* GLSLGenerator::GetBuiltInSemantic(const char* semantic, AttributeModifier modifier)
+{
+    if (m_target == Target_VertexShader && modifier == AttributeModifier_Out && String_EqualNoCase(semantic, "SV_POSITION"))
+        return "gl_Position";
+
+    if (m_target == Target_FragmentShader && modifier == AttributeModifier_Out && String_EqualNoCase(semantic, "DEPTH"))
+        return "gl_FragDepth";
+
+    if (m_target == Target_FragmentShader && modifier == AttributeModifier_In && String_EqualNoCase(semantic, "SV_POSITION"))
+        return "gl_FragCoord";
+
+    return NULL;
 }
 
 }
