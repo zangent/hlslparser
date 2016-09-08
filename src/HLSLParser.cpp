@@ -1376,13 +1376,41 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
                 return false;
             }
 
+            const HLSLFunction* declaration = FindFunction(function);
+
+            // Forward declaration
+            if (Accept(';'))
+            {
+                // Add a function entry so that calls can refer to it
+                if (!declaration)
+                {
+                    m_functions.PushBack( function );
+                    statement = function;
+                }
+                EndScope();
+                return true;
+            }
+
             // Optional semantic.
             if (Accept(':') && !ExpectIdentifier(function->semantic))
             {
                 return false;
             }
-            
-            m_functions.PushBack( function );
+
+            if (declaration)
+            {
+                if (declaration->forward || declaration->statement)
+                {
+                    m_tokenizer.Error("Duplicate function definition");
+                    return false;
+                }
+
+                const_cast<HLSLFunction*>(declaration)->forward = function;
+            }
+            else
+            {
+                m_functions.PushBack( function );
+            }
 
             if (!Expect('{') || !ParseBlock(function->statement, function->returnType))
             {
@@ -3327,6 +3355,45 @@ const HLSLFunction* HLSLParser::FindFunction(const char* name) const
     for (int i = 0; i < m_functions.GetSize(); ++i)
     {
         if (m_functions[i]->name == name)
+        {
+            return m_functions[i];
+        }
+    }
+    return NULL;
+}
+
+static bool AreTypesEqual(HLSLTree* tree, const HLSLType& lhs, const HLSLType& rhs)
+{
+    return GetTypeCastRank(tree, lhs, rhs) == 0;
+}
+
+static bool AreArgumentListsEqual(HLSLTree* tree, HLSLArgument* lhs, HLSLArgument* rhs)
+{
+    while (lhs && rhs)
+    {
+        if (!AreTypesEqual(tree, lhs->type, rhs->type))
+            return false;
+
+        if (lhs->modifier != rhs->modifier)
+            return false;
+
+        if (lhs->semantic != rhs->semantic || lhs->sv_semantic != rhs->sv_semantic)
+            return false;
+
+        lhs = lhs->nextArgument;
+        rhs = rhs->nextArgument;
+    }
+
+    return lhs == NULL && rhs == NULL;
+}
+
+const HLSLFunction* HLSLParser::FindFunction(const HLSLFunction* fun) const
+{
+    for (int i = 0; i < m_functions.GetSize(); ++i)
+    {
+        if (m_functions[i]->name == fun->name &&
+            AreTypesEqual(m_tree, m_functions[i]->returnType, fun->returnType) &&
+            AreArgumentListsEqual(m_tree, m_functions[i]->argument, fun->argument))
         {
             return m_functions[i];
         }

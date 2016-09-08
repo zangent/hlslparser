@@ -405,6 +405,7 @@ struct HLSLFunction : public HLSLStatement
         statement       = NULL;
         argument        = NULL;
         numArguments    = 0;
+        forward         = NULL;
     }
     const char*         name;
     HLSLType            returnType;
@@ -413,6 +414,7 @@ struct HLSLFunction : public HLSLStatement
     int                 numArguments;
     HLSLArgument*       argument;
     HLSLStatement*      statement;
+    HLSLFunction*       forward; // Which HLSLFunction this one forward-declares
 };
 
 /** Declaration of an argument to a function. */

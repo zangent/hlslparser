@@ -818,6 +818,9 @@ public:
     {
         node->hidden = false;
         HLSLTreeVisitor::VisitFunction(node);
+
+        if (node->forward)
+            VisitFunction(node->forward);
     }
 
     virtual void VisitFunctionCall(HLSLFunctionCall * node)

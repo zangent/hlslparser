@@ -288,7 +288,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryNam
                 floatTypes[i], floatTypes[i], floatTypes[i]);
         }
     }
-
+    
 	// special function to emulate ?: with bool{2,3,4} condition type
 	m_writer.WriteLine( 0, "vec2 %s(bvec2 cond, vec2 trueExpr, vec2 falseExpr) { vec2 ret; ret.x = cond.x ? trueExpr.x : falseExpr.x; ret.y = cond.y ? trueExpr.y : falseExpr.y; return ret; }", m_bvecTernary );
 	m_writer.WriteLine( 0, "vec3 %s(bvec3 cond, vec3 trueExpr, vec3 falseExpr) { vec3 ret; ret.x = cond.x ? trueExpr.x : falseExpr.x; ret.y = cond.y ? trueExpr.y : falseExpr.y; ret.z = cond.z ? trueExpr.z : falseExpr.z; return ret; }", m_bvecTernary );
@@ -830,7 +830,7 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
 
     while (statement != NULL)
     {
-        if (statement->hidden) 
+        if (statement->hidden)
         {
             statement = statement->nextStatement;
             continue;
@@ -904,12 +904,18 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
 
             OutputArguments(function->argument);
 
-            m_writer.Write(") {");
-            m_writer.EndLine();
+            if (function->forward)
+            {
+                m_writer.WriteLine(indent, ");");
+            }
+            else
+            {
+                m_writer.Write(") {");
+                m_writer.EndLine();
 
-            OutputStatements(indent + 1, function->statement, &function->returnType);
-            m_writer.WriteLine(indent, "}");
-
+                OutputStatements(indent + 1, function->statement, &function->returnType);
+                m_writer.WriteLine(indent, "}");
+            }
         }
         else if (statement->nodeType == HLSLNodeType_ExpressionStatement)
         {
