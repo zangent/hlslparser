@@ -20,16 +20,23 @@ class GLSLGenerator
 {
 
 public:
-
     enum Target
     {
         Target_VertexShader,
         Target_FragmentShader,
     };
 
+    enum Version
+    {
+        Version_110, // OpenGL 2.0
+        Version_140, // OpenGL 3.1
+        Version_100_ES, // OpenGL ES 2.0
+        Version_300_ES, // OpenGL ES 3.0
+    };
+
     explicit GLSLGenerator(Allocator* allocator);
     
-    bool Generate(HLSLTree* tree, Target target, const char* entryName);
+    bool Generate(HLSLTree* tree, Target target, Version versiom, const char* entryName);
     const char* GetResult() const;
 
 private:
@@ -77,6 +84,7 @@ private:
     bool ChooseUniqueName(const char* base, char* dst, int dstLength) const;
 
     const char* GetBuiltInSemantic(const char* semantic, AttributeModifier modifier);
+    const char* GetAttribQualifier(AttributeModifier modifier);
 
 private:
 
@@ -88,6 +96,8 @@ private:
     HLSLTree*           m_tree;
     const char*         m_entryName;
     Target              m_target;
+    Version             m_version;
+
     bool                m_outputPosition;
 
     const char*         m_outAttribPrefix;

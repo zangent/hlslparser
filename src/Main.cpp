@@ -37,6 +37,7 @@ int main( int argc, char* argv[] )
 	const char* fileName = NULL;
 	const char* entryName = NULL;
 	GLSLGenerator::Target target = GLSLGenerator::Target_FragmentShader;
+	GLSLGenerator::Version version = GLSLGenerator::Version_140;
 
 	for( int argn = 1; argn < argc; ++argn )
 	{
@@ -93,7 +94,7 @@ int main( int argc, char* argv[] )
 
 	// Generate output
 	GLSLGenerator generator( &allocator );
-	generator.Generate( &tree, target, entryName );
+	generator.Generate( &tree, target, version, entryName );
 	std::cout << generator.GetResult();
 
 	return 0;

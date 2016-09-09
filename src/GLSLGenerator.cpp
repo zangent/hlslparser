@@ -123,12 +123,13 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_outputPosition            = false;
 }
 
-bool GLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName)
+bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, const char* entryName)
 {
 
     m_tree      = tree;
     m_entryName = entryName;
     m_target    = target;
+    m_version   = version;
 
     
     bool usesClip = m_tree->GetContainsString("clip");
@@ -185,15 +186,35 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryNam
         return false;
     }
 
-    m_writer.WriteLine(0, "#version 140");
+    if (m_version == Version_110)
+    {
+        m_writer.WriteLine(0, "#version 110");
+    }
+    else if (m_version == Version_140)
+    {
+        m_writer.WriteLine(0, "#version 140");
 
-    // Pragmas for NVIDIA.
-    m_writer.WriteLine(0, "#pragma optionNV(fastmath on)");
-    //m_writer.WriteLine(0, "#pragma optionNV(fastprecision on)");
-    m_writer.WriteLine(0, "#pragma optionNV(ifcvt none)");
-    m_writer.WriteLine(0, "#pragma optionNV(inline all)");
-    m_writer.WriteLine(0, "#pragma optionNV(strict on)");
-    m_writer.WriteLine(0, "#pragma optionNV(unroll all)");
+        // Pragmas for NVIDIA.
+        m_writer.WriteLine(0, "#pragma optionNV(fastmath on)");
+        //m_writer.WriteLine(0, "#pragma optionNV(fastprecision on)");
+        m_writer.WriteLine(0, "#pragma optionNV(ifcvt none)");
+        m_writer.WriteLine(0, "#pragma optionNV(inline all)");
+        m_writer.WriteLine(0, "#pragma optionNV(strict on)");
+        m_writer.WriteLine(0, "#pragma optionNV(unroll all)");
+    }
+    else if (m_version == Version_100_ES)
+    {
+        m_writer.WriteLine(0, "#version 100");
+    }
+    else if (m_version == Version_300_ES)
+    {
+        m_writer.WriteLine(0, "#version 300 es");
+    }
+    else
+    {
+        Error("Unrecognized target version");
+        return false;
+    }
 
     // Output the special function used to access rows in a matrix.
     m_writer.WriteLine(0, "vec3 %s(mat3 m, int i) { return vec3( m[0][i], m[1][i], m[2][i] ); }", m_matrixRowFunction);
@@ -269,15 +290,19 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryNam
 
     m_writer.WriteLine(0, "vec2  %s(float x) { return  vec2(x, x); }", m_scalarSwizzle2Function);
     m_writer.WriteLine(0, "ivec2 %s(int   x) { return ivec2(x, x); }", m_scalarSwizzle2Function);
-    m_writer.WriteLine(0, "uvec2 %s(uint  x) { return uvec2(x, x); }", m_scalarSwizzle2Function);
 
     m_writer.WriteLine(0, "vec3  %s(float x) { return  vec3(x, x, x); }", m_scalarSwizzle3Function);
     m_writer.WriteLine(0, "ivec3 %s(int   x) { return ivec3(x, x, x); }", m_scalarSwizzle3Function);
-    m_writer.WriteLine(0, "uvec3 %s(uint  x) { return uvec3(x, x, x); }", m_scalarSwizzle3Function);
 
     m_writer.WriteLine(0, "vec4  %s(float x) { return  vec4(x, x, x, x); }", m_scalarSwizzle4Function);
     m_writer.WriteLine(0, "ivec4 %s(int   x) { return ivec4(x, x, x, x); }", m_scalarSwizzle4Function);
-    m_writer.WriteLine(0, "uvec4 %s(uint  x) { return uvec4(x, x, x, x); }", m_scalarSwizzle4Function);
+
+    if (m_version != Version_100_ES)
+    {
+        m_writer.WriteLine(0, "uvec2 %s(uint  x) { return uvec2(x, x); }", m_scalarSwizzle2Function);
+        m_writer.WriteLine(0, "uvec3 %s(uint  x) { return uvec3(x, x, x); }", m_scalarSwizzle3Function);
+        m_writer.WriteLine(0, "uvec4 %s(uint  x) { return uvec4(x, x, x, x); }", m_scalarSwizzle4Function);
+    }
 
     if (usesSinCos)
     {
@@ -1037,9 +1062,25 @@ HLSLStruct* GLSLGenerator::FindStruct(HLSLRoot* root, const char* name)
     return NULL;
 }
 
+
+const char* GLSLGenerator::GetAttribQualifier(AttributeModifier modifier)
+{
+    if (m_version == Version_110 || m_version == Version_100_ES)
+    {
+        if (m_target == Target_VertexShader)
+            return (modifier == AttributeModifier_In) ? "attribute" : "varying";
+        else
+            return (modifier == AttributeModifier_In) ? "varying" : "out";
+    }
+    else
+    {
+        return (modifier == AttributeModifier_In) ? "in" : "out";
+    }
+}
+
 void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, AttributeModifier modifier)
 {
-    const char* attribType = (modifier == AttributeModifier_In) ? "in" : "out";
+    const char* qualifier = GetAttribQualifier(modifier);
     const char* prefix = (modifier == AttributeModifier_In) ? m_inAttribPrefix : m_outAttribPrefix;
 
     HLSLRoot* root = m_tree->GetRoot();
@@ -1054,7 +1095,7 @@ void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, 
         {
             if (field->semantic != NULL && GetBuiltInSemantic(field->semantic, modifier) == NULL)
             {
-                m_writer.Write( "%s ", attribType );
+                m_writer.Write( "%s ", qualifier );
 				char attribName[ 64 ];
 				String_Printf( attribName, 64, "%s%s", prefix, field->semantic );
 				OutputDeclaration( field->type, attribName );
@@ -1065,7 +1106,7 @@ void GLSLGenerator::OutputAttribute(const HLSLType& type, const char* semantic, 
     }
     else if (semantic != NULL && GetBuiltInSemantic(semantic, modifier) == NULL)
     {
-		m_writer.Write( "%s ", attribType );
+		m_writer.Write( "%s ", qualifier );
 		char attribName[ 64 ];
 		String_Printf( attribName, 64, "%s%s", prefix, semantic );
 		OutputDeclaration( type, attribName );
@@ -1383,6 +1424,21 @@ const char* GLSLGenerator::GetBuiltInSemantic(const char* semantic, AttributeMod
 
     if (m_target == Target_FragmentShader && modifier == AttributeModifier_In && String_EqualNoCase(semantic, "SV_POSITION"))
         return "gl_FragCoord";
+
+    if (m_target == Target_FragmentShader && modifier == AttributeModifier_Out && (m_version == Version_110 || m_version == Version_100_ES))
+    {
+        if (String_EqualNoCase(semantic, "COLOR0"))
+            return "gl_FragData[0]";
+
+        if (String_EqualNoCase(semantic, "COLOR1"))
+            return "gl_FragData[1]";
+
+        if (String_EqualNoCase(semantic, "COLOR2"))
+            return "gl_FragData[2]";
+
+        if (String_EqualNoCase(semantic, "COLOR3"))
+            return "gl_FragData[3]";
+    }
 
     return NULL;
 }
