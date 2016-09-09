@@ -70,6 +70,7 @@ private:
 	void OutputDeclarationType( const HLSLType& type );
 	void OutputDeclarationBody( const HLSLType& type, const char* name );
     void OutputDeclaration(const HLSLType& type, const char* name);
+    void OutputCast(const HLSLType& type);
 
     void OutputSetOutAttribute(const char* semantic, const char* resultName);
 
@@ -111,6 +112,7 @@ private:
     const char*         m_inAttribPrefix;
 
     char                m_matrixRowFunction[64];
+    char                m_matrixCtorFunction[64];
     char                m_clipFunction[64];
     char                m_tex2DlodFunction[64];
     char                m_tex2DbiasFunction[64];

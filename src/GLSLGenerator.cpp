@@ -114,6 +114,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_outAttribPrefix           = NULL;
     m_error                     = false;
     m_matrixRowFunction[0]      = 0;
+    m_matrixCtorFunction[0]     = 0;
     m_clipFunction[0]           = 0;
     m_tex2DlodFunction[0]       = 0;
     m_tex2DbiasFunction[0]      = 0;
@@ -139,6 +140,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     m_flags     = flags;
 
     ChooseUniqueName("matrix_row", m_matrixRowFunction, sizeof(m_matrixRowFunction));
+    ChooseUniqueName("matrix_ctor", m_matrixCtorFunction, sizeof(m_matrixCtorFunction));
     ChooseUniqueName("clip", m_clipFunction, sizeof(m_clipFunction));
     ChooseUniqueName("tex2Dlod", m_tex2DlodFunction, sizeof(m_tex2DlodFunction));
     ChooseUniqueName("tex2Dbias", m_tex2DbiasFunction, sizeof(m_tex2DbiasFunction));
@@ -215,6 +217,12 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     // Output the special function used to access rows in a matrix.
     m_writer.WriteLine(0, "vec3 %s(mat3 m, int i) { return vec3( m[0][i], m[1][i], m[2][i] ); }", m_matrixRowFunction);
     m_writer.WriteLine(0, "vec4 %s(mat4 m, int i) { return vec4( m[0][i], m[1][i], m[2][i], m[3][i] ); }", m_matrixRowFunction);
+
+    // Output the special function used to do matrix cast for OpenGL 2.0
+    if (m_version == Version_110)
+    {
+        m_writer.WriteLine(0, "mat3 %s(mat4 m) { return mat3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2]); }", m_matrixCtorFunction);
+    }
 
     // Output the special function used to emulate HLSL clip.
     if (m_tree->NeedsFunction("clip"))
@@ -432,7 +440,7 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
 
     if (cast)
     {
-        OutputDeclaration(*dstType, "");
+        OutputCast(*dstType);
         m_writer.Write("(");
     }
 
@@ -461,7 +469,7 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         }
         else
         {
-            OutputDeclaration(castingExpression->type, "");
+            OutputCast(castingExpression->type);
             m_writer.Write("(");
             OutputExpression(castingExpression->expression);
             m_writer.Write(")");
@@ -1432,6 +1440,14 @@ void GLSLGenerator::OutputZeroLiteral(const HLSLType& type)
     {
         m_writer.Write("%s(0)", GetTypeName(type));
     }
+}
+
+void GLSLGenerator::OutputCast(const HLSLType& type)
+{
+    if (m_version == Version_110 && type.baseType == HLSLBaseType_Float3x3)
+        m_writer.Write("%s", m_matrixCtorFunction);
+    else
+        OutputDeclaration(type, "");
 }
 
 void GLSLGenerator::Error(const char* format, ...)
