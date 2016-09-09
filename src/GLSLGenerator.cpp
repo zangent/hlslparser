@@ -21,6 +21,9 @@
 namespace M4
 {
 
+static const HLSLType kFloatType(HLSLBaseType_Float);
+static const HLSLType kUintType(HLSLBaseType_Uint);
+static const HLSLType kIntType(HLSLBaseType_Int);
 static const HLSLType kBoolType(HLSLBaseType_Bool);
 
 // These are reserved words in GLSL that aren't reserved in HLSL.
@@ -349,6 +352,27 @@ void GLSLGenerator::OutputExpressionList(HLSLExpression* expression, HLSLArgumen
     }
 }
 
+const HLSLType* commonScalarType(const HLSLType& lhs, const HLSLType& rhs)
+{
+    if (!isScalarType(lhs) || !isScalarType(rhs))
+        return NULL;
+
+    if (lhs.baseType == HLSLBaseType_Float || lhs.baseType == HLSLBaseType_Half ||
+        rhs.baseType == HLSLBaseType_Float || rhs.baseType == HLSLBaseType_Half)
+        return &kFloatType;
+
+    if (lhs.baseType == HLSLBaseType_Uint || rhs.baseType == HLSLBaseType_Uint)
+        return &kUintType;
+
+    if (lhs.baseType == HLSLBaseType_Int || rhs.baseType == HLSLBaseType_Int)
+        return &kIntType;
+
+    if (lhs.baseType == HLSLBaseType_Bool || rhs.baseType == HLSLBaseType_Bool)
+        return &kBoolType;
+
+    return NULL;
+}
+
 void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* dstType)
 {
 
@@ -493,12 +517,12 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
 			case HLSLBinaryOp_Sub:          op = " - "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
 			case HLSLBinaryOp_Mul:          op = " * "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
 			case HLSLBinaryOp_Div:          op = " / "; dstType1 = dstType2 = &binaryExpression->expressionType; break;
-			case HLSLBinaryOp_Less:         op = " < "; break;
-			case HLSLBinaryOp_Greater:      op = " > "; break;
-			case HLSLBinaryOp_LessEqual:    op = " <= "; break;
-			case HLSLBinaryOp_GreaterEqual: op = " >= "; break;
-			case HLSLBinaryOp_Equal:        op = " == "; break;
-			case HLSLBinaryOp_NotEqual:     op = " != "; break;
+			case HLSLBinaryOp_Less:         op = " < "; dstType1 = dstType2 = commonScalarType(binaryExpression->expression1->expressionType, binaryExpression->expression2->expressionType); break;
+			case HLSLBinaryOp_Greater:      op = " > "; dstType1 = dstType2 = commonScalarType(binaryExpression->expression1->expressionType, binaryExpression->expression2->expressionType); break;
+			case HLSLBinaryOp_LessEqual:    op = " <= "; dstType1 = dstType2 = commonScalarType(binaryExpression->expression1->expressionType, binaryExpression->expression2->expressionType); break;
+			case HLSLBinaryOp_GreaterEqual: op = " >= "; dstType1 = dstType2 = commonScalarType(binaryExpression->expression1->expressionType, binaryExpression->expression2->expressionType); break;
+			case HLSLBinaryOp_Equal:        op = " == "; dstType1 = dstType2 = commonScalarType(binaryExpression->expression1->expressionType, binaryExpression->expression2->expressionType); break;
+			case HLSLBinaryOp_NotEqual:     op = " != "; dstType1 = dstType2 = commonScalarType(binaryExpression->expression1->expressionType, binaryExpression->expression2->expressionType); break;
 			case HLSLBinaryOp_Assign:       op = " = ";  dstType2 = &binaryExpression->expressionType; break;
 			case HLSLBinaryOp_AddAssign:    op = " += "; dstType2 = &binaryExpression->expressionType; break;
 			case HLSLBinaryOp_SubAssign:    op = " -= "; dstType2 = &binaryExpression->expressionType; break;
@@ -535,9 +559,9 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
 			m_writer.Write( "((" );
 			OutputExpression( conditionalExpression->condition, &kBoolType );
 			m_writer.Write( ")?(" );
-			OutputExpression( conditionalExpression->trueExpression );
+			OutputExpression( conditionalExpression->trueExpression, dstType );
 			m_writer.Write( "):(" );
-			OutputExpression( conditionalExpression->falseExpression );
+			OutputExpression( conditionalExpression->falseExpression, dstType );
 			m_writer.Write( "))" );
 		}
     }
