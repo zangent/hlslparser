@@ -97,6 +97,7 @@ private:
     const char*         m_entryName;
     Target              m_target;
     Version             m_version;
+    bool                m_versionLegacy;
 
     bool                m_outputPosition;
 

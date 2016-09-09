@@ -105,6 +105,8 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_tree                      = NULL;
     m_entryName                 = NULL;
     m_target                    = Target_VertexShader;
+    m_version                   = Version_140;
+    m_versionLegacy             = false;
     m_inAttribPrefix            = NULL;
     m_outAttribPrefix           = NULL;
     m_error                     = false;
@@ -130,6 +132,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     m_entryName = entryName;
     m_target    = target;
     m_version   = version;
+    m_versionLegacy = (version == Version_110 || version == Version_100_ES);
 
     
     bool usesClip = m_tree->GetContainsString("clip");
@@ -1059,7 +1062,7 @@ HLSLStruct* GLSLGenerator::FindStruct(HLSLRoot* root, const char* name)
 
 const char* GLSLGenerator::GetAttribQualifier(AttributeModifier modifier)
 {
-    if (m_version == Version_110 || m_version == Version_100_ES)
+    if (m_versionLegacy)
     {
         if (m_target == Target_VertexShader)
             return (modifier == AttributeModifier_In) ? "attribute" : "varying";
@@ -1419,7 +1422,7 @@ const char* GLSLGenerator::GetBuiltInSemantic(const char* semantic, AttributeMod
     if (m_target == Target_FragmentShader && modifier == AttributeModifier_In && String_EqualNoCase(semantic, "SV_POSITION"))
         return "gl_FragCoord";
 
-    if (m_target == Target_FragmentShader && modifier == AttributeModifier_Out && (m_version == Version_110 || m_version == Version_100_ES))
+    if (m_target == Target_FragmentShader && modifier == AttributeModifier_Out && m_versionLegacy)
     {
         if (String_EqualNoCase(semantic, "COLOR0"))
             return "gl_FragData[0]";
