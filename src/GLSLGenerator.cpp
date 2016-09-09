@@ -1137,49 +1137,46 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
     HLSLArgument* argument = entryFunction->argument;
     while (argument != NULL)
     {
-        if (argument->modifier == HLSLArgumentModifier_Out)
-        {
-            argument = argument->nextArgument;
-            continue;
-        }
-
         m_writer.BeginLine(1);
         OutputDeclaration(argument->type, argument->name);
         m_writer.EndLine(";");
 
-        // Set the value for the local variable.
-        if (argument->type.baseType == HLSLBaseType_UserDefined)
+        if (argument->modifier != HLSLArgumentModifier_Out)
         {
-            HLSLStruct* structDeclaration = FindStruct(root, argument->type.typeName);
-            ASSERT(structDeclaration != NULL);
-            HLSLStructField* field = structDeclaration->field;
-            while (field != NULL)
+            // Set the value for the local variable.
+            if (argument->type.baseType == HLSLBaseType_UserDefined)
             {
-                if (field->semantic != NULL)
+                HLSLStruct* structDeclaration = FindStruct(root, argument->type.typeName);
+                ASSERT(structDeclaration != NULL);
+                HLSLStructField* field = structDeclaration->field;
+                while (field != NULL)
                 {
-                    const char* builtInSemantic = GetBuiltInSemantic(field->semantic, AttributeModifier_In);
-                    if (builtInSemantic)
+                    if (field->semantic != NULL)
                     {
-                        m_writer.WriteLine(1, "%s.%s = %s;", GetSafeIdentifierName(argument->name), GetSafeIdentifierName(field->name), builtInSemantic);
+                        const char* builtInSemantic = GetBuiltInSemantic(field->semantic, AttributeModifier_In);
+                        if (builtInSemantic)
+                        {
+                            m_writer.WriteLine(1, "%s.%s = %s;", GetSafeIdentifierName(argument->name), GetSafeIdentifierName(field->name), builtInSemantic);
+                        }
+                        else
+                        {
+                            m_writer.WriteLine(1, "%s.%s = %s%s;", GetSafeIdentifierName(argument->name), GetSafeIdentifierName(field->name), m_inAttribPrefix, field->semantic);
+                        }
                     }
-                    else
-                    {
-                        m_writer.WriteLine(1, "%s.%s = %s%s;", GetSafeIdentifierName(argument->name), GetSafeIdentifierName(field->name), m_inAttribPrefix, field->semantic);
-                    }
+                    field = field->nextField;
                 }
-                field = field->nextField;
             }
-        }
-        else if (argument->semantic != NULL)
-        {
-            const char* builtInSemantic = GetBuiltInSemantic(argument->semantic, AttributeModifier_In);
-            if (builtInSemantic)
+            else if (argument->semantic != NULL)
             {
-                m_writer.WriteLine(1, "%s = %s;", GetSafeIdentifierName(argument->name), builtInSemantic);
-            }
-            else
-            {
-                m_writer.WriteLine(1, "%s = %s%s;", GetSafeIdentifierName(argument->name), m_inAttribPrefix, argument->semantic);
+                const char* builtInSemantic = GetBuiltInSemantic(argument->semantic, AttributeModifier_In);
+                if (builtInSemantic)
+                {
+                    m_writer.WriteLine(1, "%s = %s;", GetSafeIdentifierName(argument->name), builtInSemantic);
+                }
+                else
+                {
+                    m_writer.WriteLine(1, "%s = %s%s;", GetSafeIdentifierName(argument->name), m_inAttribPrefix, argument->semantic);
+                }
             }
         }
 
@@ -1203,15 +1200,7 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
             m_writer.Write(", ");
         }
 
-        if (argument->modifier == HLSLArgumentModifier_Out)
-        {
-            if (argument->semantic)
-                m_writer.Write("%s%s", m_outAttribPrefix, argument->semantic);
-        }
-        else
-        {
-            m_writer.Write("%s", GetSafeIdentifierName(argument->name));
-        }
+        m_writer.Write("%s", GetSafeIdentifierName(argument->name));
 
         argument = argument->nextArgument;
         ++numArgs;
@@ -1219,6 +1208,15 @@ void GLSLGenerator::OutputEntryCaller(HLSLFunction* entryFunction)
     m_writer.EndLine(");");
 
     // Copy values from the result into the out attributes as necessary.
+    argument = entryFunction->argument;
+    while (argument != NULL)
+    {
+        if (argument->modifier == HLSLArgumentModifier_Out && argument->semantic)
+            OutputSetOutAttribute(argument->semantic, GetSafeIdentifierName(argument->name));
+
+        argument = argument->nextArgument;
+    }
+
     if (entryFunction->returnType.baseType == HLSLBaseType_UserDefined)
     {
         HLSLStruct* structDeclaration = FindStruct(root, entryFunction->returnType.typeName);
