@@ -229,13 +229,39 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     // Output the special function used to emulate tex2Dlod.
     if (m_tree->NeedsFunction("tex2Dlod"))
     {
-        m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return %s(sampler, texCoord.xy, texCoord.w);  }", m_tex2DlodFunction, m_versionLegacy ? "texture2DLod" : "textureLod" );
+        const char* function = "textureLod";
+
+        if (m_version == Version_110)
+        {
+            m_writer.WriteLine(0, "#extension GL_ARB_shader_texture_lod : require");
+            function = "texture2DLod";
+        }
+        else if (m_version == Version_100_ES)
+        {
+            m_writer.WriteLine(0, "#extension GL_EXT_shader_texture_lod : require");
+            function = "texture2DLodEXT";
+        }
+
+        m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return %s(sampler, texCoord.xy, texCoord.w);  }", m_tex2DlodFunction, function);
     }
 
     // Output the special function used to emulate tex2Dgrad.
     if (m_tree->NeedsFunction("tex2Dgrad"))
     {
-        m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec2 texCoord, vec2 dx, vec2 dy) { return textureGrad(sampler, texCoord, dx, dy);  }", m_tex2DgradFunction );
+        const char* function = "textureGrad";
+
+        if (m_version == Version_110)
+        {
+            m_writer.WriteLine(0, "#extension GL_ARB_shader_texture_lod : require");
+            function = "texture2DGradARB";
+        }
+        else if (m_version == Version_100_ES)
+        {
+            m_writer.WriteLine(0, "#extension GL_EXT_shader_texture_lod : require");
+            function = "texture2DGradEXT";
+        }
+
+        m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec2 texCoord, vec2 dx, vec2 dy) { return %s(sampler, texCoord, dx, dy);  }", m_tex2DgradFunction, function);
     }
 
     // Output the special function used to emulate tex2Dbias.
@@ -276,7 +302,20 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
 	// Output the special function used to emulate texCUBElod
 	if (m_tree->NeedsFunction("texCUBElod"))
 	{
-		m_writer.WriteLine( 0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return %s(sampler, texCoord.xyz, texCoord.w);  }", m_texCUBElodFunction, m_versionLegacy ? "textureCubeLod" : "textureLod" );
+        const char* function = "textureLod";
+
+        if (m_version == Version_110)
+        {
+            m_writer.WriteLine(0, "#extension GL_ARB_shader_texture_lod : require");
+            function = "textureCubeLod";
+        }
+        else if (m_version == Version_100_ES)
+        {
+            m_writer.WriteLine(0, "#extension GL_EXT_shader_texture_lod : require");
+            function = "textureCubeLodEXT";
+        }
+
+		m_writer.WriteLine( 0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return %s(sampler, texCoord.xyz, texCoord.w);  }", m_texCUBElodFunction, function);
 	}
 
     m_writer.WriteLine(0, "vec2  %s(float x) { return  vec2(x, x); }", m_scalarSwizzle2Function);
@@ -309,6 +348,12 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
 	m_writer.WriteLine( 0, "vec2 %s(bvec2 cond, vec2 trueExpr, vec2 falseExpr) { vec2 ret; ret.x = cond.x ? trueExpr.x : falseExpr.x; ret.y = cond.y ? trueExpr.y : falseExpr.y; return ret; }", m_bvecTernary );
 	m_writer.WriteLine( 0, "vec3 %s(bvec3 cond, vec3 trueExpr, vec3 falseExpr) { vec3 ret; ret.x = cond.x ? trueExpr.x : falseExpr.x; ret.y = cond.y ? trueExpr.y : falseExpr.y; ret.z = cond.z ? trueExpr.z : falseExpr.z; return ret; }", m_bvecTernary );
 	m_writer.WriteLine( 0, "vec4 %s(bvec4 cond, vec4 trueExpr, vec4 falseExpr) { vec4 ret; ret.x = cond.x ? trueExpr.x : falseExpr.x; ret.y = cond.y ? trueExpr.y : falseExpr.y; ret.z = cond.z ? trueExpr.z : falseExpr.z; ret.w = cond.w ? trueExpr.w : falseExpr.w; return ret; }", m_bvecTernary );
+
+    // Output the extension used for dFdx/dFdy in GLES2
+    if (m_version == Version_100_ES && (m_tree->NeedsFunction("ddx") || m_tree->NeedsFunction("ddy")))
+    {
+        m_writer.WriteLine(0, "#extension GL_OES_standard_derivatives : require");
+    }
 
     OutputAttributes(entryFunction);
     OutputStatements(0, statement);
