@@ -109,6 +109,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_target                    = Target_VertexShader;
     m_version                   = Version_140;
     m_versionLegacy             = false;
+    m_flags                     = 0;
     m_inAttribPrefix            = NULL;
     m_outAttribPrefix           = NULL;
     m_error                     = false;
@@ -127,7 +128,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_outputPosition            = false;
 }
 
-bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, const char* entryName)
+bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, const char* entryName, unsigned int flags)
 {
 
     m_tree      = tree;
@@ -135,6 +136,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     m_target    = target;
     m_version   = version;
     m_versionLegacy = (version == Version_110 || version == Version_100_ES);
+    m_flags     = flags;
 
     ChooseUniqueName("matrix_row", m_matrixRowFunction, sizeof(m_matrixRowFunction));
     ChooseUniqueName("clip", m_clipFunction, sizeof(m_clipFunction));
@@ -1149,15 +1151,23 @@ void GLSLGenerator::OutputSetOutAttribute(const char* semantic, const char* resu
     {
         if (String_Equal(builtInSemantic, "gl_Position"))
         {
-            // Mirror the y-coordinate when we're outputing from
-            // the vertex shader so that we match the D3D texture
-            // coordinate origin convention in render-to-texture
-            // operations.
-            // We also need to convert the normalized device
-            // coordinates from the D3D convention of 0 to 1 to the
-            // OpenGL convention of -1 to 1.
-            m_writer.WriteLine(1, "vec4 temp = %s;", resultName);
-            m_writer.WriteLine(1, "%s = temp * vec4(1,-1,2,1) - vec4(0,0,temp.w,0);", builtInSemantic);
+            if (m_flags & Flag_FlipPositionOutput)
+            {
+                // Mirror the y-coordinate when we're outputing from
+                // the vertex shader so that we match the D3D texture
+                // coordinate origin convention in render-to-texture
+                // operations.
+                // We also need to convert the normalized device
+                // coordinates from the D3D convention of 0 to 1 to the
+                // OpenGL convention of -1 to 1.
+                m_writer.WriteLine(1, "vec4 temp = %s;", resultName);
+                m_writer.WriteLine(1, "%s = temp * vec4(1,-1,2,1) - vec4(0,0,temp.w,0);", builtInSemantic);
+            }
+            else
+            {
+                m_writer.WriteLine(1, "%s = %s;", builtInSemantic, resultName);
+            }
+
             m_outputPosition = true;
         }
         else if (String_Equal(builtInSemantic, "gl_FragDepth"))

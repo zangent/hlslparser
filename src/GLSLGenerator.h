@@ -34,9 +34,14 @@ public:
         Version_300_ES, // OpenGL ES 3.0
     };
 
+    enum Flags
+    {
+        Flag_FlipPositionOutput = 1 << 0,
+    };
+
     explicit GLSLGenerator(Allocator* allocator);
     
-    bool Generate(HLSLTree* tree, Target target, Version versiom, const char* entryName);
+    bool Generate(HLSLTree* tree, Target target, Version versiom, const char* entryName, unsigned int flags = 0);
     const char* GetResult() const;
 
 private:
@@ -98,6 +103,7 @@ private:
     Target              m_target;
     Version             m_version;
     bool                m_versionLegacy;
+    unsigned int        m_flags;
 
     bool                m_outputPosition;
 
