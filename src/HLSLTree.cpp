@@ -355,6 +355,40 @@ bool HLSLTree::GetExpressionValue(HLSLExpression * expression, int & value)
     return false;
 }
 
+bool HLSLTree::NeedsFunction(const char* name)
+{
+    // Early out
+    if (!GetContainsString(name))
+        return false;
+
+    struct NeedsFunctionVisitor: HLSLTreeVisitor
+    {
+        const char* name;
+        bool result;
+
+        virtual void VisitTopLevelStatement(HLSLStatement * node)
+        {
+            if (!node->hidden)
+                HLSLTreeVisitor::VisitTopLevelStatement(node);
+        }
+
+        virtual void VisitFunctionCall(HLSLFunctionCall * node)
+        {
+            result = result || String_Equal(name, node->function->name);
+
+            HLSLTreeVisitor::VisitFunctionCall(node);
+        }
+    };
+
+    NeedsFunctionVisitor visitor;
+    visitor.name = name;
+    visitor.result = false;
+
+    visitor.VisitRoot(m_root);
+
+    return visitor.result;
+}
+
 /*
 bool HLSLTree::GetExpressionValue(HLSLExpression * expression, float & value)
 {

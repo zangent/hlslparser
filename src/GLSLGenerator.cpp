@@ -134,16 +134,6 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     m_version   = version;
     m_versionLegacy = (version == Version_110 || version == Version_100_ES);
 
-    
-    bool usesClip = m_tree->GetContainsString("clip");
-    bool usesTex2Dlod = m_tree->GetContainsString("tex2Dlod");
-    bool usesTex2Dbias = m_tree->GetContainsString("tex2Dbias");
-    bool usesTex2Dgrad = m_tree->GetContainsString("tex2Dgrad");
-    bool usesTex3Dlod = m_tree->GetContainsString("tex3Dlod");
-    bool usestexCUBEbias = m_tree->GetContainsString("texCUBEbias");
-	bool usestexCUBElod = m_tree->GetContainsString( "texCUBElod" );
-    bool usesSinCos = m_tree->GetContainsString("sincos");
-
     ChooseUniqueName("matrix_row", m_matrixRowFunction, sizeof(m_matrixRowFunction));
     ChooseUniqueName("clip", m_clipFunction, sizeof(m_clipFunction));
     ChooseUniqueName("tex2Dlod", m_tex2DlodFunction, sizeof(m_tex2DlodFunction));
@@ -223,7 +213,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     m_writer.WriteLine(0, "vec4 %s(mat4 m, int i) { return vec4( m[0][i], m[1][i], m[2][i], m[3][i] ); }", m_matrixRowFunction);
 
     // Output the special function used to emulate HLSL clip.
-    if (usesClip)
+    if (m_tree->NeedsFunction("clip"))
     {
         const char* discard = m_target == Target_FragmentShader ? "discard" : "";
         m_writer.WriteLine(0, "void %s(float x) { if (x < 0.0) %s;  }", m_clipFunction, discard);
@@ -233,19 +223,19 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     }
 
     // Output the special function used to emulate tex2Dlod.
-    if (usesTex2Dlod)
+    if (m_tree->NeedsFunction("tex2Dlod"))
     {
         m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return %s(sampler, texCoord.xy, texCoord.w);  }", m_tex2DlodFunction, m_versionLegacy ? "texture2DLod" : "textureLod" );
     }
 
     // Output the special function used to emulate tex2Dgrad.
-    if (usesTex2Dgrad)
+    if (m_tree->NeedsFunction("tex2Dgrad"))
     {
         m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec2 texCoord, vec2 dx, vec2 dy) { return textureGrad(sampler, texCoord, dx, dy);  }", m_tex2DgradFunction );
     }
 
     // Output the special function used to emulate tex2Dbias.
-    if (usesTex2Dbias)
+    if (m_tree->NeedsFunction("tex2Dbias"))
     {
         if (target == Target_FragmentShader)
         {
@@ -260,13 +250,13 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     }
 
     // Output the special function used to emulate tex3Dlod.
-    if (usesTex3Dlod)
+    if (m_tree->NeedsFunction("tex3Dlod"))
     {
         m_writer.WriteLine(0, "vec4 %s(sampler3D sampler, vec4 texCoord) { return %s(sampler, texCoord.xyz, texCoord.w);  }", m_tex3DlodFunction, m_versionLegacy ? "texture3D" : "texture" );
     }
 
     // Output the special function used to emulate texCUBEbias.
-    if (usestexCUBEbias)
+    if (m_tree->NeedsFunction("texCUBEbias"))
     {
         if (target == Target_FragmentShader)
         {
@@ -280,7 +270,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     }
 
 	// Output the special function used to emulate texCUBElod
-	if( usestexCUBElod )
+	if (m_tree->NeedsFunction("texCUBElod"))
 	{
 		m_writer.WriteLine( 0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return %s(sampler, texCoord.xyz, texCoord.w);  }", m_texCUBElodFunction, m_versionLegacy ? "textureCubeLod" : "textureLod" );
 	}
@@ -301,7 +291,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
         m_writer.WriteLine(0, "uvec4 %s(uint  x) { return uvec4(x, x, x, x); }", m_scalarSwizzle4Function);
     }
 
-    if (usesSinCos)
+    if (m_tree->NeedsFunction("sincos"))
     {
         const char* floatTypes[] = { "float", "vec2", "vec3", "vec4" };
         for (int i = 0; i < 4; ++i)

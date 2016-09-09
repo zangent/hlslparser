@@ -797,6 +797,8 @@ public:
     bool GetExpressionValue(HLSLExpression * expression, int & value);
 	//bool GetExpressionValue(HLSLExpression * expression, float & value);
 
+    bool NeedsFunction(const char * name);
+
 private:
 
     void* AllocateMemory(size_t size);
