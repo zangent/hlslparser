@@ -56,9 +56,10 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_SamplerCube:  return "samplerCUBE";
     case HLSLBaseType_Sampler2DShadow:  return "sampler2DShadow";
     case HLSLBaseType_Sampler2DMS:  return "sampler2DMS";
+    case HLSLBaseType_Sampler2DArray:    return "sampler2DArray";
     case HLSLBaseType_UserDefined:  return type.typeName;
+    default: return "?";
     }
-    return "?";
 }
 
 static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* expression[], int maxArguments)
@@ -539,6 +540,7 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
         case HLSLUnaryOp_PreDecrement:  op = "--"; break;
         case HLSLUnaryOp_PostIncrement: op = "++"; pre = false; break;
         case HLSLUnaryOp_PostDecrement: op = "--"; pre = false; break;
+        case HLSLUnaryOp_BitNot:        op = "~";  break;
         }
         m_writer.Write("(");
         if (pre)

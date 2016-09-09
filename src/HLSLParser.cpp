@@ -1452,7 +1452,6 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
             {
                 // @@ Currently we support either a semantic or a register, but not both.
                 if (AcceptIdentifier(declaration->semantic)) {
-                    int k = 1;
                 }
                 else if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(declaration->registerName) || !Expect(')'))
                 {

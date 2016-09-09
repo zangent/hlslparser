@@ -71,11 +71,10 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Sampler2D:    return "sampler2D";
     case HLSLBaseType_Sampler3D:    return "sampler3D";
     case HLSLBaseType_SamplerCube:  return "samplerCube";
-    case HLSLBaseType_Sampler2DArray:    return "sampler2DArray";
+    case HLSLBaseType_Sampler2DArray:  return "sampler2DArray";
     case HLSLBaseType_UserDefined:  return type.typeName;
+    default: return "?";
     }
-    ASSERT(0);
-    return "?";
 }
 
 static bool GetCanImplicitCast(const HLSLType& srcType, const HLSLType& dstType)
@@ -437,6 +436,7 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         case HLSLUnaryOp_PreDecrement:  op = "--"; break;
         case HLSLUnaryOp_PostIncrement: op = "++"; pre = false; break;
         case HLSLUnaryOp_PostDecrement: op = "--"; pre = false; break;
+        case HLSLUnaryOp_BitNot:        op = "~";  break;
         }
         m_writer.Write("(");
         if (pre)
@@ -829,6 +829,8 @@ void GLSLGenerator::OutputArguments(HLSLArgument* argument)
         case HLSLArgumentModifier_Inout:
             m_writer.Write("inout ");
             break;
+        default:
+            break;
         }
 
         OutputDeclaration(argument->type, argument->name);
@@ -902,9 +904,6 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
         else if (statement->nodeType == HLSLNodeType_Function)
         {
             HLSLFunction* function = static_cast<HLSLFunction*>(statement);
-
-            // Check if this is our entry point.
-            bool entryPoint = String_Equal(function->name, m_entryName);
 
             // Use an alternate name for the function which is supposed to be entry point
             // so that we can supply our own function which will be the actual entry point.
