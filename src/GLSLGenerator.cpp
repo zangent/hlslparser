@@ -146,7 +146,6 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     ChooseUniqueName("tex2Dlod", m_tex2DlodFunction, sizeof(m_tex2DlodFunction));
     ChooseUniqueName("tex2Dbias", m_tex2DbiasFunction, sizeof(m_tex2DbiasFunction));
     ChooseUniqueName("tex2Dgrad", m_tex2DgradFunction, sizeof(m_tex2DgradFunction));
-    ChooseUniqueName("tex2DArray", m_tex2DArrayFunction, sizeof(m_tex2DArrayFunction));
     ChooseUniqueName("tex3Dlod", m_tex3DlodFunction, sizeof(m_tex3DlodFunction));
     ChooseUniqueName("texCUBEbias", m_texCUBEbiasFunction, sizeof(m_texCUBEbiasFunction));
 	ChooseUniqueName( "texCUBElod", m_texCUBElodFunction, sizeof( m_texCUBElodFunction ) );
@@ -255,11 +254,6 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
             m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return texture(sampler, texCoord.xy);  }", m_tex2DbiasFunction );
         }
 
-    }
-
-    if (m_tree->GetContainsString("tex2DArray"))
-    {
-        m_writer.WriteLine(0, "vec4 %s(sampler2DArray sampler, vec3 texCoord) { return texture(sampler, texCoord.xyz);  }", m_tex2DArrayFunction );
     }
 
     // Output the special function used to emulate tex3Dlod.
@@ -771,7 +765,7 @@ void GLSLGenerator::OutputIdentifier(const char* name)
     }
     else if (String_Equal(name, "tex2DArray"))
     {
-        name = m_tex2DArrayFunction;
+        name = "texture";
     }
     else if (String_Equal(name, "texCUBEbias"))
     {
