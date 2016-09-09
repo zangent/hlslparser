@@ -235,7 +235,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     // Output the special function used to emulate tex2Dlod.
     if (usesTex2Dlod)
     {
-        m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return textureLod(sampler, texCoord.xy, texCoord.w);  }", m_tex2DlodFunction );
+        m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return %s(sampler, texCoord.xy, texCoord.w);  }", m_tex2DlodFunction, m_versionLegacy ? "texture2DLod" : "textureLod" );
     }
 
     // Output the special function used to emulate tex2Dgrad.
@@ -249,7 +249,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     {
         if (target == Target_FragmentShader)
         {
-            m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return texture(sampler, texCoord.xy, texCoord.w);  }", m_tex2DbiasFunction );
+            m_writer.WriteLine(0, "vec4 %s(sampler2D sampler, vec4 texCoord) { return %s(sampler, texCoord.xy, texCoord.w);  }", m_tex2DbiasFunction, m_versionLegacy ? "texture2D" : "texture" );
         }
         else
         {
@@ -262,7 +262,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     // Output the special function used to emulate tex3Dlod.
     if (usesTex3Dlod)
     {
-        m_writer.WriteLine(0, "vec4 %s(sampler3D sampler, vec4 texCoord) { return textureLod(sampler, texCoord.xyz, texCoord.w);  }", m_tex3DlodFunction );
+        m_writer.WriteLine(0, "vec4 %s(sampler3D sampler, vec4 texCoord) { return %s(sampler, texCoord.xyz, texCoord.w);  }", m_tex3DlodFunction, m_versionLegacy ? "texture3D" : "texture" );
     }
 
     // Output the special function used to emulate texCUBEbias.
@@ -270,7 +270,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     {
         if (target == Target_FragmentShader)
         {
-            m_writer.WriteLine(0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return texture(sampler, texCoord.xyz, texCoord.w);  }", m_texCUBEbiasFunction );
+            m_writer.WriteLine(0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return %s(sampler, texCoord.xyz, texCoord.w);  }", m_texCUBEbiasFunction, m_versionLegacy ? "textureCube" : "texture" );
         }
         else
         {
@@ -282,7 +282,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
 	// Output the special function used to emulate texCUBElod
 	if( usestexCUBElod )
 	{
-		m_writer.WriteLine( 0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return textureLod(sampler, texCoord.xyz, texCoord.w);  }", m_texCUBElodFunction );
+		m_writer.WriteLine( 0, "vec4 %s(samplerCube sampler, vec4 texCoord) { return %s(sampler, texCoord.xyz, texCoord.w);  }", m_texCUBElodFunction, m_versionLegacy ? "textureCubeLod" : "textureLod" );
 	}
 
     m_writer.WriteLine(0, "vec2  %s(float x) { return  vec2(x, x); }", m_scalarSwizzle2Function);
@@ -736,19 +736,19 @@ void GLSLGenerator::OutputIdentifier(const char* name)
     // Remap intrinstic functions.
     if (String_Equal(name, "tex2D"))
     {
-        name = "texture";
+        name = m_versionLegacy ? "texture2D" : "texture";
     }
     else if (String_Equal(name, "tex2Dproj"))
     {
-        name = "textureProj";
+        name = m_versionLegacy ? "texture2DProj" : "textureProj";
     }
     else if (String_Equal(name, "texCUBE"))
     {
-        name = "texture";
+        name = m_versionLegacy ? "textureCube" : "texture";
     }
     else if (String_Equal(name, "tex3D"))
     {
-        name = "texture";
+        name = m_versionLegacy ? "texture3D" : "texture";
     }
     else if (String_Equal(name, "clip"))
     {
