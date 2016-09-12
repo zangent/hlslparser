@@ -10,13 +10,13 @@ For example, the following functions in our HLSL dialect:
 ```C
 float tex2Dcmp(sampler2DShadow s, float3 texcoord_comparevalue);
 float4 tex2DMSfetch(sampler2DMS s, int2 texcoord, int sample);
-int2 tex2Dsize(sampler2D s, int mipmap);
+int2 tex2Dsize(sampler2D s);
 ```
 
 Are equivalent to these methods in HLSL10:
 
 ```C++
-float Texture2D::SampleCmp(SamplerComparisonState s, float2 texcoord, float comparevalue)
+float Texture2D::SampleCmp(SamplerComparisonState s, float2 texcoord, float comparevalue);
 float4 Texture2DMS<float4>::Load(int2 texcoord, int sample);
 void Texture2D<float4>::GetDimensions(out uint w, out uint h);
 ```
