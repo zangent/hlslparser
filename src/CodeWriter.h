@@ -32,7 +32,7 @@ class CodeWriter
 {
 
 public:
-    explicit CodeWriter(bool writeFileNames);
+    CodeWriter(bool writeFileNames = true);
 
     void BeginLine(int indent, const char* fileName = NULL, int lineNumber = -1);
     M4_PRINTF_ATTR(2, 3) void Write(const char* format, ...);
