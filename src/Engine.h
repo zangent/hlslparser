@@ -1,6 +1,11 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#if _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS 1
+#define __attribute__(...)
+#endif
+
 #include <stdarg.h> // va_list, vsnprintf
 #include <stdlib.h> // malloc
 #include <new> // for placement new
@@ -12,8 +17,6 @@
 #ifndef va_copy
 #define va_copy(a, b) (a) = (b)
 #endif
-
-
 
 // Engine/Assert.h
 

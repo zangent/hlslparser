@@ -38,6 +38,7 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Float2:           return "float2";
     case HLSLBaseType_Float3:           return "float3";
     case HLSLBaseType_Float4:           return "float4";
+    case HLSLBaseType_Float2x2:         return "float2x2";
     case HLSLBaseType_Float3x3:         return "float3x3";
     case HLSLBaseType_Float4x4:         return "float4x4";
     case HLSLBaseType_Float4x3:         return "float3x4";
@@ -46,11 +47,15 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Half2:            return "half2";
     case HLSLBaseType_Half3:            return "half3";
     case HLSLBaseType_Half4:            return "half4";
+    case HLSLBaseType_Half2x2:          return "half2x2";
     case HLSLBaseType_Half3x3:          return "half3x3";
     case HLSLBaseType_Half4x4:          return "half4x4";
     case HLSLBaseType_Half4x3:          return "half3x4";
     case HLSLBaseType_Half4x2:          return "half2x4";
     case HLSLBaseType_Bool:             return "bool";
+    case HLSLBaseType_Bool2:            return "bool2";
+    case HLSLBaseType_Bool3:            return "bool3";
+    case HLSLBaseType_Bool4:            return "bool4";
     case HLSLBaseType_Int:              return "int";
     case HLSLBaseType_Int2:             return "int2";
     case HLSLBaseType_Int3:             return "int3";
@@ -69,7 +74,7 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_UserDefined:      return type.typeName;
     default:
         ASSERT(0);
-        return "?";
+        return "<unknown type>";
     }
 }
 
@@ -385,7 +390,7 @@ void MSLGenerator::CleanPrepass()
     m_lastClassArgument = NULL;
 }
     
-bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName, uint flags)
+bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName, int flags)
 {
     m_firstClassArgument = NULL;
     m_lastClassArgument = NULL;

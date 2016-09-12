@@ -412,7 +412,7 @@ int HLSLTree::GetExpressionValue(HLSLExpression * expression, float values[4])
     {
         int int_value;
         if (GetExpressionValue(expression, int_value)) {
-            for (int i = 0; i < 4; i++) values[i] = (int)int_value;
+            for (int i = 0; i < 4; i++) values[i] = (float)int_value;   // @@ Warn if conversion is not exact.
             return 1;
         }
 
@@ -467,7 +467,7 @@ int HLSLTree::GetExpressionValue(HLSLExpression * expression, float values[4])
                 return 0;
             }
         }
-        assert(dim == dim1);
+        ASSERT(dim == dim1);
 
         switch(binaryExpression->binaryOp)
         {
@@ -497,7 +497,7 @@ int HLSLTree::GetExpressionValue(HLSLExpression * expression, float values[4])
         {
             return 0;
         }
-        assert(dim == dim1);
+        ASSERT(dim == dim1);
 
         switch(unaryExpression->unaryOp)
         {
@@ -528,7 +528,7 @@ int HLSLTree::GetExpressionValue(HLSLExpression * expression, float values[4])
 
             arg = arg->nextExpression;
         }
-        assert(dim == idx);
+        ASSERT(dim == idx);
 
         return dim;
     }
@@ -555,7 +555,7 @@ int HLSLTree::GetExpressionValue(HLSLExpression * expression, float values[4])
         if (literal->expressionType.baseType == HLSLBaseType_Float) values[0] = literal->fValue;
         else if (literal->expressionType.baseType == HLSLBaseType_Half) values[0] = literal->fValue;
         else if (literal->expressionType.baseType == HLSLBaseType_Bool) values[0] = literal->bValue;
-        else if (literal->expressionType.baseType == HLSLBaseType_Int) values[0] = literal->iValue;
+        else if (literal->expressionType.baseType == HLSLBaseType_Int) values[0] = (float)literal->iValue;  // @@ Warn if conversion is not exact.
         else return 0;
 
         return 1;

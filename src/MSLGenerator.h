@@ -34,7 +34,7 @@ public:
 
     MSLGenerator();
     
-    bool Generate(HLSLTree* tree, Target target, const char* entryName, uint flags = 0);
+    bool Generate(HLSLTree* tree, Target target, const char* entryName, int flags = 0);
     const char* GetResult() const;
 
 private:

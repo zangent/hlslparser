@@ -120,7 +120,7 @@ const char * StringPool::AddString(const char * string) {
 
 // @@ From mprintf.cpp
 static char *mprintf_valist(int size, const char *fmt, va_list args) {
-    assert(size > 0);
+    ASSERT(size > 0);
     char *res = NULL;
     va_list tmp;
 
