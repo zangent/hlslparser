@@ -20,8 +20,7 @@ namespace M4
 
 static const int _maxLineLength = 2048;
 
-CodeWriter::CodeWriter(Allocator* allocator) :
-    m_allocator(allocator)
+CodeWriter::CodeWriter()
 {
     m_currentLine       = 1;
     m_currentFileName   = NULL;

@@ -30,6 +30,8 @@ static const char* GetTypeName(const HLSLType& type)
 	case HLSLBaseType_Float2x2:     return "float2x2";
     case HLSLBaseType_Float3x3:     return "float3x3";
     case HLSLBaseType_Float4x4:     return "float4x4";
+    case HLSLBaseType_Float4x3:     return "float4x3";
+    case HLSLBaseType_Float4x2:     return "float4x2";
     case HLSLBaseType_Half:         return "half";
     case HLSLBaseType_Half2:        return "half2";
     case HLSLBaseType_Half3:        return "half3";
@@ -37,6 +39,8 @@ static const char* GetTypeName(const HLSLType& type)
 	case HLSLBaseType_Half2x2:      return "half2x2";
     case HLSLBaseType_Half3x3:      return "half3x3";
     case HLSLBaseType_Half4x4:      return "half4x4";
+    case HLSLBaseType_Half4x3:      return "half4x3";
+    case HLSLBaseType_Half4x2:      return "half4x2";
     case HLSLBaseType_Bool:         return "bool";
 	case HLSLBaseType_Bool2:        return "bool2";
 	case HLSLBaseType_Bool3:        return "bool3";
@@ -58,7 +62,7 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_Sampler2DMS:  return "sampler2DMS";
     case HLSLBaseType_UserDefined:  return type.typeName;
     }
-    return "?";
+    return "<unknown type>";
 }
 
 static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* expression[], int maxArguments)
@@ -77,8 +81,7 @@ static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* 
     return numArguments;
 }
 
-HLSLGenerator::HLSLGenerator(Allocator* allocator) :
-    m_writer(allocator)
+HLSLGenerator::HLSLGenerator(Allocator* allocator)
 {
     m_tree                          = NULL;
     m_entryName                     = NULL;
@@ -98,6 +101,7 @@ HLSLGenerator::HLSLGenerator(Allocator* allocator) :
     m_tex2DGradFunction[0]          = 0;
     m_tex2DGatherFunction[0]        = 0;
     m_tex2DSizeFunction[0]          = 0;
+    m_tex2DFetchFunction[0]         = 0;
     m_tex2DCmpFunction[0]           = 0;
     m_tex2DMSFetchFunction[0]       = 0;
     m_tex3DFunction[0]              = 0;
@@ -119,7 +123,10 @@ static const char * TranslateSemantic(const char* semantic, bool output, HLSLGen
     {
         if (output) 
         {
-            if (String_Equal("POSITION", semantic))   return "SV_Position";
+            if (String_Equal("POSITION", semantic))     return "SV_Position";
+        }
+        else {
+            if (String_Equal("INSTANCE_ID", semantic))  return "SV_InstanceID";
         }
     }
     else if (target == HLSLGenerator::Target_PixelShader)
@@ -204,6 +211,7 @@ bool HLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryNam
         }
 
         // Handle argument semantics.
+        // @@ It would be nice to flag arguments that are used by the program and skip or hide the unused ones.
         HLSLArgument * argument = function->argument;
         while (argument) {
             bool output = argument->modifier == HLSLArgumentModifier_Out;
@@ -218,6 +226,7 @@ bool HLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryNam
                 while (field) {
                     if (field->semantic) {
 						field->hidden = false;
+
 						if (target == Target_PixelShader && !output && String_EqualNoCase(field->semantic, "POSITION")) {
 							ASSERT(String_EqualNoCase(field->sv_semantic, "SV_Position"));
 							field->hidden = true;
@@ -249,6 +258,7 @@ bool HLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryNam
     ChooseUniqueName("tex2Dgrad",                   m_tex2DGradFunction,        sizeof(m_tex2DGradFunction));
     ChooseUniqueName("tex2Dgather",                 m_tex2DGatherFunction,      sizeof(m_tex2DGatherFunction));
     ChooseUniqueName("tex2Dsize",                   m_tex2DSizeFunction,        sizeof(m_tex2DSizeFunction));
+    ChooseUniqueName("tex2Dfetch",                  m_tex2DFetchFunction,       sizeof(m_tex2DFetchFunction));
     ChooseUniqueName("tex2Dcmp",                    m_tex2DCmpFunction,         sizeof(m_tex2DCmpFunction));
     ChooseUniqueName("tex2DMSfetch",                m_tex2DMSFetchFunction,     sizeof(m_tex2DMSFetchFunction));
     ChooseUniqueName("tex2DMSsize",                 m_tex2DMSSizeFunction,      sizeof(m_tex2DMSSizeFunction));
@@ -352,6 +362,12 @@ bool HLSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryNam
         {
             m_writer.WriteLine(0, "int2 %s(%s ts) {", m_tex2DSizeFunction, m_textureSampler2DStruct);
             m_writer.WriteLine(1, "int2 size; ts.t.GetDimensions(size.x, size.y); return size;");
+            m_writer.WriteLine(0, "}");
+        }
+        if (m_tree->GetContainsString("tex2Dfetch"))
+        {
+            m_writer.WriteLine(0, "int2 %s(%s ts, int3 texCoord) {", m_tex2DFetchFunction, m_textureSampler2DStruct);
+            m_writer.WriteLine(1, "return ts.t.Load(texCoord.xyz);");
             m_writer.WriteLine(0, "}");
         }
         if (m_tree->GetContainsString("tex2Dcmp"))
@@ -578,6 +594,9 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
         case HLSLBinaryOp_DivAssign:    op = " /= "; break;
         case HLSLBinaryOp_And:          op = " && "; break;
         case HLSLBinaryOp_Or:           op = " || "; break;
+		case HLSLBinaryOp_BitAnd:       op = " & "; break;
+        case HLSLBinaryOp_BitOr:        op = " | "; break;
+        case HLSLBinaryOp_BitXor:       op = " ^ "; break;
         default:
             ASSERT(0);
         }
@@ -644,6 +663,10 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression)
             else if (String_Equal(name, "tex2Dsize"))
             {
                 name = m_tex2DSizeFunction;
+            }
+            else if (String_Equal(name, "tex2Dfetch"))
+            {
+                name = m_tex2DFetchFunction;
             }
             else if (String_Equal(name, "tex2Dcmp"))
             {
@@ -846,10 +869,10 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 
             OutputArguments(function->argument);
 
-			const char * semantic = function->sv_semantic ? function->sv_semantic : function->semantic;
+            const char * semantic = function->sv_semantic ? function->sv_semantic : function->semantic;
             if (semantic != NULL)
             {
-				m_writer.Write(") : %s {", semantic);
+                m_writer.Write(") : %s {", semantic);
             }
             else
             {
@@ -964,7 +987,7 @@ void HLSLGenerator::OutputDeclaration(HLSLDeclaration* declaration)
         int reg = -1;
         if (declaration->registerName != NULL)
         {
-            sscanf_s(declaration->registerName, "s%d", &reg);
+            sscanf(declaration->registerName, "s%d", &reg);
         }
 
         const char* textureType = NULL;

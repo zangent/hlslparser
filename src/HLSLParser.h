@@ -112,7 +112,7 @@ private:
     const HLSLFunction* MatchFunctionCall(const HLSLFunctionCall* functionCall, const char* name);
 
     /** Gets the type of the named field on the specified object type (fieldName can also specify a swizzle. ) */
-    bool GetMemberType(const HLSLType& objectType, const char* fieldName, HLSLType& memberType);
+    bool GetMemberType(const HLSLType& objectType, HLSLMemberAccess * memberAccess);
 
     bool CheckTypeCast(const HLSLType& srcType, const HLSLType& dstType);
 

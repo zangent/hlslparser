@@ -116,8 +116,7 @@ static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* 
     return numArguments;
 }
 
-GLSLGenerator::GLSLGenerator(Allocator* allocator) :
-    m_writer(allocator)
+GLSLGenerator::GLSLGenerator(Allocator* allocator)
 {
     m_tree                      = NULL;
     m_entryName                 = NULL;

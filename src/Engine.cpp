@@ -83,7 +83,14 @@ void Log_Error(const char * format, ...) {
 }
 
 void Log_ErrorArgList(const char * format, va_list args) {
-	vprintf( format, args );
+#if 1 // @@ Don't we need to do this?
+    va_list tmp;
+    va_copy(tmp, args);
+    vprintf( format, args );
+    va_end(tmp);
+#else
+    vprintf( format, args );
+#endif
 }
 
 
@@ -91,25 +98,88 @@ void Log_ErrorArgList(const char * format, va_list args) {
 
 StringPool::StringPool(Allocator * allocator) : stringArray(allocator) {
 }
+StringPool::~StringPool() {
+    for (int i = 0; i < stringArray.GetSize(); i++) {
+        free((void *)stringArray[i]);
+        stringArray[i] = NULL;
+    }
+}
 
 const char * StringPool::AddString(const char * string) {
-	for (int i = 0; i < stringArray.GetSize(); i++) {
-		if (String_Equal(stringArray[i], string)) return stringArray[i];
-	}
+    for (int i = 0; i < stringArray.GetSize(); i++) {
+        if (String_Equal(stringArray[i], string)) return stringArray[i];
+    }
 #if _MSC_VER
     const char * dup = _strdup(string);
 #else
-	const char * dup = strdup(string);
+    const char * dup = strdup(string);
 #endif
-	stringArray.PushBack(dup);
-	return dup;
+    stringArray.PushBack(dup);
+    return dup;
+}
+
+// @@ From mprintf.cpp
+static char *mprintf_valist(int size, const char *fmt, va_list args) {
+    assert(size > 0);
+    char *res = NULL;
+    va_list tmp;
+
+    while (1) {
+        res = new char[size];
+        if (!res) return NULL;
+
+        va_copy(tmp, args);
+        int len = vsnprintf(res, size, fmt, tmp);
+        va_end(tmp);
+
+        if ((len >= 0) && (size >= len + 1)) {
+            break;
+        }
+
+        delete [] res;
+
+        if (len > -1 ) {
+            size = len + 1;
+        }
+        else {
+            size *= 2;
+        }
+    }
+
+    return res;
+}
+
+const char * StringPool::AddStringFormatList(const char * format, va_list args) {
+    va_list tmp;
+    va_copy(tmp, args);
+    const char * string = mprintf_valist(256, format, tmp);
+    va_end(tmp);
+
+    for (int i = 0; i < stringArray.GetSize(); i++) {
+        if (String_Equal(stringArray[i], string)) {
+            delete [] string;
+            return stringArray[i];
+        }
+    }
+
+    stringArray.PushBack(string);
+    return string;
+}
+
+const char * StringPool::AddStringFormat(const char * format, ...) {
+    va_list args;
+    va_start(args, format);
+    const char * string = AddStringFormatList(format, args);
+    va_end(args);
+
+    return string;
 }
 
 bool StringPool::GetContainsString(const char * string) const {
-	for (int i = 0; i < stringArray.GetSize(); i++) {
-		if (String_Equal(stringArray[i], string)) return true;
-	}
-	return false;
+    for (int i = 0; i < stringArray.GetSize(); i++) {
+        if (String_Equal(stringArray[i], string)) return true;
+    }
+    return false;
 }
 
 } // M4 namespace

@@ -10,6 +10,7 @@
 #ifndef CODE_WRITER_H
 #define CODE_WRITER_H
 
+#include "Engine.h"
 #include <string>
 
 namespace M4
@@ -26,21 +27,20 @@ class CodeWriter
 
 public:
 
-    explicit CodeWriter(Allocator* allocator);
+    CodeWriter();
 
     void BeginLine(int indent, const char* fileName = NULL, int lineNumber = -1);
-    void Write(const char* format, ...);
+    void Write(const char* format, ...) __attribute__((format (printf, 2, 3)));
     void EndLine(const char* text = NULL);
 
-    void WriteLine(int indent, const char* format, ...);
-    void WriteLine(int indent, const char* fileName, int lineNumber, const char* format, ...);
+    void WriteLine(int indent, const char* format, ...) __attribute__((format (printf, 3, 4)));
+    void WriteLine(int indent, const char* fileName, int lineNumber, const char* format, ...) __attribute__((format (printf, 5, 6)));
 
     const char* GetResult() const;
     void Reset();
 
 private:
 
-    Allocator*      m_allocator;
     std::string     m_buffer;
     int             m_currentLine;
     const char*     m_currentFileName;
