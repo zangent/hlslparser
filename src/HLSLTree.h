@@ -59,6 +59,8 @@ enum HLSLBaseType
 	HLSLBaseType_Float2x2,
     HLSLBaseType_Float3x3,
     HLSLBaseType_Float4x4,
+    HLSLBaseType_Float4x3,
+    HLSLBaseType_Float4x2,
     HLSLBaseType_Half,
     HLSLBaseType_Half2,
     HLSLBaseType_Half3,
@@ -66,6 +68,8 @@ enum HLSLBaseType
 	HLSLBaseType_Half2x2,
     HLSLBaseType_Half3x3,
     HLSLBaseType_Half4x4,
+    HLSLBaseType_Half4x3,
+    HLSLBaseType_Half4x2,
     HLSLBaseType_Bool,
     HLSLBaseType_FirstInteger = HLSLBaseType_Bool,
 	HLSLBaseType_Bool2,
@@ -106,6 +110,12 @@ inline bool IsSamplerType(HLSLBaseType baseType)
            baseType == HLSLBaseType_Sampler2DArray;
 }
 
+inline bool IsMatrixType(HLSLBaseType baseType)
+{
+    return baseType == HLSLBaseType_Float3x3 || baseType == HLSLBaseType_Float4x4 || baseType == HLSLBaseType_Float4x3 || baseType == HLSLBaseType_Float4x2 ||
+        baseType == HLSLBaseType_Half3x3 || baseType == HLSLBaseType_Half4x4 || baseType == HLSLBaseType_Half4x3 || baseType == HLSLBaseType_Half4x2;
+}
+
 inline bool isScalarType( HLSLBaseType baseType )
 {
 	return  baseType == HLSLBaseType_Float ||
@@ -133,6 +143,7 @@ inline bool isVectorType( HLSLBaseType baseType )
 		baseType == HLSLBaseType_Uint3 ||
 		baseType == HLSLBaseType_Uint4;
 }
+
 
 enum HLSLBinaryOp
 {
@@ -187,6 +198,7 @@ enum HLSLArgumentModifier
     HLSLArgumentModifier_Out,
     HLSLArgumentModifier_Inout,
     HLSLArgumentModifier_Uniform,
+    HLSLArgumentModifier_Const,
 };
 
 enum HLSLTypeFlags
@@ -209,13 +221,26 @@ enum HLSLTypeFlags
     HLSLTypeFlag_NoInterpolation = 0x40000,
     HLSLTypeFlag_NoPerspective = 0x80000,
     HLSLTypeFlag_Sample = 0x100000,
+
+    // Misc.
+    //HLSLTypeFlag_Swizzle_BGRA = 0x200000,
 };
 
 enum HLSLAttributeType
 {
+    HLSLAttributeType_Unknown,
     HLSLAttributeType_Unroll,
     HLSLAttributeType_Branch,
     HLSLAttributeType_Flatten,
+};
+
+enum HLSLAddressSpace
+{
+    HLSLAddressSpace_Undefined,
+    HLSLAddressSpace_Constant,
+    HLSLAddressSpace_Device,
+    HLSLAddressSpace_Thread,
+    HLSLAddressSpace_Shared,
 };
 
 
@@ -227,7 +252,6 @@ struct HLSLDeclaration;
 struct HLSLStruct;
 struct HLSLStructField;
 struct HLSLBuffer;
-//struct HLSLBufferField;
 struct HLSLFunction;
 struct HLSLArgument;
 struct HLSLExpressionStatement;
@@ -238,7 +262,6 @@ struct HLSLIdentifierExpression;
 struct HLSLConstructorExpression;
 struct HLSLFunctionCall;
 struct HLSLArrayAccess;
-struct HLSLAttribute;
 
 struct HLSLType
 {
@@ -249,12 +272,14 @@ struct HLSLType
         array       = false;
         arraySize   = NULL;
         flags  = 0;
+        addressSpace = HLSLAddressSpace_Undefined;
     }
     HLSLBaseType        baseType;
     const char*         typeName;       // For user defined types.
     bool                array;
     HLSLExpression*     arraySize;
     int                 flags;
+    HLSLAddressSpace    addressSpace;
 };
 
 inline bool IsSamplerType(const HLSLType & type)
@@ -304,11 +329,12 @@ struct HLSLStatement : public HLSLNode
 struct HLSLAttribute : public HLSLNode
 {
     static const HLSLNodeType s_type = HLSLNodeType_Attribute;
-    HLSLAttribute()
-    {
-        argument        = NULL;
-        nextAttribute   = NULL;
-    }
+	HLSLAttribute()
+	{
+		attributeType = HLSLAttributeType_Unknown;
+		argument      = NULL;
+		nextAttribute = NULL;
+	}
     HLSLAttributeType   attributeType;
     HLSLExpression*     argument;
     HLSLAttribute*      nextAttribute;
@@ -379,19 +405,6 @@ struct HLSLBuffer : public HLSLStatement
     HLSLDeclaration*    field;
 };
 
-/** Field declaration inside of a cbuffer or tbuffer */ // @@ Isn't this just a regular declaration?
-/*struct HLSLBufferField : public HLSLNode
-{
-    static const HLSLNodeType s_type = HLSLNodeType_BufferField;
-    HLSLBufferField()
-    {
-        name            = NULL;
-        nextField       = NULL;
-    }
-    const char*         name;
-    HLSLType            type;
-    HLSLBufferField*    nextField;      // Next field in the cbuffer.
-};*/
 
 /** Function declaration */
 struct HLSLFunction : public HLSLStatement
@@ -429,6 +442,7 @@ struct HLSLArgument : public HLSLNode
         sv_semantic     = NULL;
         defaultValue    = NULL;
         nextArgument    = NULL;
+        hidden          = false;
     }
     const char*             name;
     HLSLArgumentModifier    modifier;
@@ -437,6 +451,7 @@ struct HLSLArgument : public HLSLNode
     const char*             sv_semantic;
     HLSLExpression*         defaultValue;
     HLSLArgument*           nextArgument;
+    bool                    hidden;
 };
 
 /** A expression which forms a complete statement. */
@@ -608,10 +623,10 @@ struct HLSLIdentifierExpression : public HLSLExpression
 struct HLSLConstructorExpression : public HLSLExpression
 {
     static const HLSLNodeType s_type = HLSLNodeType_ConstructorExpression;
-    HLSLConstructorExpression()
-    {
-        argument = NULL;
-    }
+	HLSLConstructorExpression()
+	{
+		argument = NULL;
+	}
     HLSLType            type;
     HLSLExpression*     argument;
 };
@@ -620,24 +635,26 @@ struct HLSLConstructorExpression : public HLSLExpression
 struct HLSLMemberAccess : public HLSLExpression
 {
     static const HLSLNodeType s_type = HLSLNodeType_MemberAccess;
-    HLSLMemberAccess()
-    {
-        object = NULL;
-        field  = NULL;
-    }
+	HLSLMemberAccess()
+	{
+		object  = NULL;
+		field   = NULL;
+		swizzle = false;
+	}
     HLSLExpression*     object;
     const char*         field;
+    bool                swizzle;
 };
 
 /** array[index] **/
 struct HLSLArrayAccess : public HLSLExpression
 {
     static const HLSLNodeType s_type = HLSLNodeType_ArrayAccess;
-    HLSLArrayAccess()
-    {
-        array = NULL;
-        index = NULL;
-    }
+	HLSLArrayAccess()
+	{
+		array = NULL;
+		index = NULL;
+	}
     HLSLExpression*     array;
     HLSLExpression*     index;
 };
@@ -645,15 +662,15 @@ struct HLSLArrayAccess : public HLSLExpression
 struct HLSLFunctionCall : public HLSLExpression
 {
     static const HLSLNodeType s_type = HLSLNodeType_FunctionCall;
-    HLSLFunctionCall()
-    {
-        function        = NULL;
-        argument        = NULL;
-        numArguments    = 0;
-    }
+	HLSLFunctionCall()
+	{
+		function     = NULL;
+		argument     = NULL;
+		numArguments = 0;
+	}
     const HLSLFunction* function;
-    int                 numArguments;
     HLSLExpression*     argument;
+    int                 numArguments;
 };
 
 struct HLSLStateAssignment : public HLSLNode
@@ -767,6 +784,7 @@ public:
 
     /** Adds a string to the string pool used by the tree. */
     const char* AddString(const char* string);
+    const char* AddStringFormat(const char* string, ...);
 
     /** Returns true if the string is contained within the tree. */
     bool GetContainsString(const char* string) const;
@@ -795,7 +813,7 @@ public:
     HLSLBuffer * FindBuffer(const char * name);
 
     bool GetExpressionValue(HLSLExpression * expression, int & value);
-	//bool GetExpressionValue(HLSLExpression * expression, float & value);
+    int GetExpressionValue(HLSLExpression * expression, float values[4]);
 
     bool NeedsFunction(const char * name);
 
@@ -879,8 +897,9 @@ public:
 extern void PruneTree(HLSLTree* tree, const char* entryName0, const char* entryName1 = NULL);
 extern void SortTree(HLSLTree* tree);
 extern void GroupParameters(HLSLTree* tree);
-
-
+extern void HideUnusedArguments(HLSLFunction * function);
+extern bool FindFunctionCall(HLSLFunction * function, const char * name);
+extern bool EmulateAlphaTest(HLSLTree* tree, const char* entryName, float alphaRef = 0.5f);
 
 } // M4
 

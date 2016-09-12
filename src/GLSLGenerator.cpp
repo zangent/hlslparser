@@ -102,7 +102,7 @@ static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* 
 }
 
 GLSLGenerator::GLSLGenerator(Allocator* allocator) :
-    m_writer(allocator, /* writeFileNames= */ false)
+    m_writer(/* writeFileNames= */ false)
 {
     m_tree                      = NULL;
     m_entryName                 = NULL;
@@ -631,7 +631,7 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
             memberAccess->object->expressionType.baseType == HLSLBaseType_Uint)
         {
             // Handle swizzling on scalar values.
-            int swizzleLength = strlen(memberAccess->field);
+            size_t swizzleLength = strlen(memberAccess->field);
             if (swizzleLength == 2)
             {
                 m_writer.Write("%s", m_scalarSwizzle2Function);

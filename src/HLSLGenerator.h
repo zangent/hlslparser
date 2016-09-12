@@ -81,6 +81,7 @@ private:
     char            m_tex2DGradFunction[64];
     char            m_tex2DGatherFunction[64];
     char            m_tex2DSizeFunction[64];
+    char            m_tex2DFetchFunction[64];
     char            m_tex2DCmpFunction[64];
     char            m_tex2DMSFetchFunction[64];
     char            m_tex2DMSSizeFunction[64];

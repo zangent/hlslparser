@@ -43,6 +43,15 @@ const char* HLSLTree::AddString(const char* string)
     return m_stringPool.AddString(string);
 }
 
+const char* HLSLTree::AddStringFormat(const char* format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    const char * string = m_stringPool.AddStringFormatList(format, args);
+    va_end(args);
+    return string;
+}
+
 bool HLSLTree::GetContainsString(const char* string) const
 {
     return m_stringPool.GetContainsString(string);
@@ -234,7 +243,8 @@ bool HLSLTree::GetExpressionValue(HLSLExpression * expression, int & value)
     }
 
     // We are expecting an integer scalar. @@ Add support for type conversion from other scalar types.
-    if (expression->expressionType.baseType != HLSLBaseType_Int) 
+    if (expression->expressionType.baseType != HLSLBaseType_Int &&
+        expression->expressionType.baseType != HLSLBaseType_Bool)
     {
         return false;
     }
@@ -302,6 +312,13 @@ bool HLSLTree::GetExpressionValue(HLSLExpression * expression, int & value)
             case HLSLBinaryOp_BitXor:
                 value = value1 ^ value2;
                 return true;
+            case HLSLBinaryOp_Assign:
+            case HLSLBinaryOp_AddAssign:
+            case HLSLBinaryOp_SubAssign:
+            case HLSLBinaryOp_MulAssign:
+            case HLSLBinaryOp_DivAssign:
+                // IC: These are not valid on non-constant expressions and should fail earlier when querying expression value.
+                return false;
         }
     }
     else if (expression->nodeType == HLSLNodeType_UnaryExpression) 
@@ -327,6 +344,12 @@ bool HLSLTree::GetExpressionValue(HLSLExpression * expression, int & value)
             case HLSLUnaryOp_BitNot:
                 value = ~value;
                 return true;
+            case HLSLUnaryOp_PostDecrement:
+            case HLSLUnaryOp_PostIncrement:
+            case HLSLUnaryOp_PreDecrement:
+            case HLSLUnaryOp_PreIncrement:
+                // IC: These are not valid on non-constant expressions and should fail earlier when querying expression value.
+                return false;
         }
     }
     else if (expression->nodeType == HLSLNodeType_IdentifierExpression)
@@ -348,7 +371,11 @@ bool HLSLTree::GetExpressionValue(HLSLExpression * expression, int & value)
     else if (expression->nodeType == HLSLNodeType_LiteralExpression) 
     {
         HLSLLiteralExpression * literal = (HLSLLiteralExpression *)expression;
-        value = literal->iValue;
+   
+        if (literal->expressionType.baseType == HLSLBaseType_Int) value = literal->iValue;
+        else if (literal->expressionType.baseType == HLSLBaseType_Bool) value = (int)literal->bValue;
+        else return false;
+        
         return true;
     }
 
@@ -389,23 +416,54 @@ bool HLSLTree::NeedsFunction(const char* name)
     return visitor.result;
 }
 
-/*
-bool HLSLTree::GetExpressionValue(HLSLExpression * expression, float & value)
+int GetVectorDimension(HLSLType & type)
+{
+    if (type.baseType >= HLSLBaseType_FirstNumeric &&
+        type.baseType <= HLSLBaseType_LastNumeric)
+    {
+        if (type.baseType == HLSLBaseType_Float || type.baseType == HLSLBaseType_Half) return 1;
+        if (type.baseType == HLSLBaseType_Float2 || type.baseType == HLSLBaseType_Half2) return 2;
+        if (type.baseType == HLSLBaseType_Float3 || type.baseType == HLSLBaseType_Half3) return 3;
+        if (type.baseType == HLSLBaseType_Float4 || type.baseType == HLSLBaseType_Half4) return 4;
+
+    }
+    return 0;
+}
+
+// Returns dimension, 0 if invalid.
+int HLSLTree::GetExpressionValue(HLSLExpression * expression, float values[4])
 {
     ASSERT (expression != NULL);
 
     // Expression must be constant.
     if ((expression->expressionType.flags & HLSLTypeFlag_Const) == 0) 
     {
-        return false;
+        return 0;
     }
 
-    // We are expecting an integer scalar. @@ Add support for type conversion from other scalar types.
-    if (expression->expressionType.baseType != HLSLBaseType_Float) 
+    if (expression->expressionType.baseType == HLSLBaseType_Int ||
+        expression->expressionType.baseType == HLSLBaseType_Bool)
     {
-        return false;
+        int int_value;
+        if (GetExpressionValue(expression, int_value)) {
+            for (int i = 0; i < 4; i++) values[i] = (float)int_value;   // @@ Warn if conversion is not exact.
+            return 1;
+        }
+
+        return 0;
+    }
+    if (expression->expressionType.baseType >= HLSLBaseType_FirstInteger && expression->expressionType.baseType <= HLSLBaseType_LastInteger)
+    {
+        // @@ Add support for uints?
+        // @@ Add support for int vectors?
+        return 0;
+    }
+    if (expression->expressionType.baseType > HLSLBaseType_LastNumeric)
+    {
+        return 0;
     }
 
+    // @@ Not supported yet, but we may need it?
     if (expression->expressionType.array) 
     {
         return false;
@@ -414,48 +472,99 @@ bool HLSLTree::GetExpressionValue(HLSLExpression * expression, float & value)
     if (expression->nodeType == HLSLNodeType_BinaryExpression) 
     {
         HLSLBinaryExpression * binaryExpression = (HLSLBinaryExpression *)expression;
+        int dim = GetVectorDimension(binaryExpression->expressionType);
 
-        int value1, value2;
-        if (!GetExpressionValue(binaryExpression->expression1, value1) ||
-            !GetExpressionValue(binaryExpression->expression2, value2))
+        float values1[4], values2[4];
+        int dim1 = GetExpressionValue(binaryExpression->expression1, values1);
+        int dim2 = GetExpressionValue(binaryExpression->expression2, values2);
+
+        if (dim1 == 0 || dim2 == 0)
         {
-            return false;
+            return 0;
         }
+
+        if (dim1 != dim2)
+        {
+            // Brodacast scalar to vector size.
+            if (dim1 == 1)
+            {
+                for (int i = 1; i < dim2; i++) values1[i] = values1[0];
+                dim1 = dim2;
+            }
+            else if (dim2 == 1)
+            {
+                for (int i = 1; i < dim1; i++) values2[i] = values2[0];
+                dim2 = dim1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        ASSERT(dim == dim1);
 
         switch(binaryExpression->binaryOp)
         {
             case HLSLBinaryOp_Add:
-                value = value1 + value2;
-                return true;
+                for (int i = 0; i < dim; i++) values[i] = values1[i] + values2[i];
+                return dim;
             case HLSLBinaryOp_Sub:
-                value = value1 - value2;
-                return true;
+                for (int i = 0; i < dim; i++) values[i] = values1[i] - values2[i];
+                return dim;
             case HLSLBinaryOp_Mul:
-                value = value1 * value2;
-                return true;
+                for (int i = 0; i < dim; i++) values[i] = values1[i] * values2[i];
+                return dim;
             case HLSLBinaryOp_Div:
-                value = value1 / value2;
-                return true;
+                for (int i = 0; i < dim; i++) values[i] = values1[i] / values2[i];
+                return dim;
+            default:
+                return 0;
         }
     }
     else if (expression->nodeType == HLSLNodeType_UnaryExpression) 
     {
         HLSLUnaryExpression * unaryExpression = (HLSLUnaryExpression *)expression;
+        int dim = GetVectorDimension(unaryExpression->expressionType);
 
-        if (!GetExpressionValue(unaryExpression->expression, value))
+        int dim1 = GetExpressionValue(unaryExpression->expression, values);
+        if (dim1 == 0)
         {
-            return false;
+            return 0;
         }
+        ASSERT(dim == dim1);
 
         switch(unaryExpression->unaryOp)
         {
             case HLSLUnaryOp_Negative:
-                value = -value;
-                return true;
+                for (int i = 0; i < dim; i++) values[i] = -values[i];
+                return dim;
             case HLSLUnaryOp_Positive:
                 // nop.
-                return true;
+                return dim;
+            default:
+                return 0;
         }
+    }
+    else if (expression->nodeType == HLSLNodeType_ConstructorExpression)
+    {
+        HLSLConstructorExpression * constructor = (HLSLConstructorExpression *)expression;
+
+        int dim = GetVectorDimension(constructor->expressionType);
+
+        int idx = 0;
+        HLSLExpression * arg = constructor->argument;
+        while (arg != NULL)
+        {
+            float tmp[4];
+            int n = GetExpressionValue(arg, tmp);
+            for (int i = 0; i < n; i++) values[idx + i] = tmp[i];
+            idx += n;
+
+            arg = arg->nextExpression;
+        }
+        ASSERT(dim == idx);
+
+        return dim;
     }
     else if (expression->nodeType == HLSLNodeType_IdentifierExpression)
     {
@@ -464,25 +573,30 @@ bool HLSLTree::GetExpressionValue(HLSLExpression * expression, float & value)
         HLSLDeclaration * declaration = FindGlobalDeclaration(identifier->name);
         if (declaration == NULL) 
         {
-            return false;
+            return 0;
         }
         if ((declaration->type.flags & HLSLTypeFlag_Const) == 0)
         {
-            return false;
+            return 0;
         }
 
-        return GetExpressionValue(declaration->assignment, value);
+        return GetExpressionValue(declaration->assignment, values);
     }
     else if (expression->nodeType == HLSLNodeType_LiteralExpression)
     {
         HLSLLiteralExpression * literal = (HLSLLiteralExpression *)expression;
-        value = literal->iValue;
-        return true;
+
+        if (literal->expressionType.baseType == HLSLBaseType_Float) values[0] = literal->fValue;
+        else if (literal->expressionType.baseType == HLSLBaseType_Half) values[0] = literal->fValue;
+        else if (literal->expressionType.baseType == HLSLBaseType_Bool) values[0] = literal->bValue;
+        else if (literal->expressionType.baseType == HLSLBaseType_Int) values[0] = (float)literal->iValue;  // @@ Warn if conversion is not exact.
+        else return 0;
+
+        return 1;
     }
 
-    return false;
+    return 0;
 }
-*/
 
 
 
@@ -670,6 +784,10 @@ void HLSLTreeVisitor::VisitExpression(HLSLExpression * node)
     else if (node->nodeType == HLSLNodeType_FunctionCall) {
         VisitFunctionCall((HLSLFunctionCall *)node);
     }
+    // Acoget-TODO: This was missing. Did adding it break anything?
+    else if (node->nodeType == HLSLNodeType_SamplerState) {
+        VisitSamplerState((HLSLSamplerState *)node);
+    }
     else {
         ASSERT(0);
     }
@@ -839,6 +957,11 @@ public:
     virtual void VisitDeclaration(HLSLDeclaration * node)
     {
         node->hidden = true;
+    }
+
+    virtual void VisitArgument(HLSLArgument * node)
+    {
+        node->hidden = false;   // Arguments are visible by default.
     }
 };
 
@@ -1230,7 +1353,194 @@ void GroupParameters(HLSLTree * tree)
 }
 
 
+class FindArgumentVisitor : public HLSLTreeVisitor
+{
+public:
+    bool found;
+    const char * name;
 
+	FindArgumentVisitor()
+	{
+		found = false;
+		name  = NULL;
+	}
+
+    bool FindArgument(const char * name, HLSLFunction * function)
+    {
+        this->found = false;
+        this->name = name;
+        VisitStatements(function->statement);
+        return found;
+    }
+
+    virtual void VisitStatements(HLSLStatement * statement) override
+    {
+        while (statement != NULL && !found)
+        {
+            VisitStatement(statement);
+            statement = statement->nextStatement;
+        }
+    }
+
+    virtual void VisitIdentifierExpression(HLSLIdentifierExpression * node) override
+    {
+        if (node->name == name)
+        {
+            found = true;
+        }
+    }
+};
+
+
+void HideUnusedArguments(HLSLFunction * function)
+{
+    FindArgumentVisitor visitor;
+ 
+    // For each argument.
+    HLSLArgument * arg = function->argument;
+    while (arg != NULL)
+    {
+        if (!visitor.FindArgument(arg->name, function))
+        {
+            arg->hidden = true;
+        }
+
+        arg = arg->nextArgument;
+    }
+}
+
+
+class FindFunctionCallVisitor : public HLSLTreeVisitor
+{
+public:
+    bool found;
+    const char * name;
+
+	FindFunctionCallVisitor()
+	{
+		found = false;
+		name  = NULL;
+	}
+
+    bool Find(HLSLFunction * function, const char * name)
+    {
+        this->found = false;
+        this->name = name;
+        VisitStatements(function->statement);
+        return found;
+    }
+
+    virtual void VisitStatements(HLSLStatement * statement) override
+    {
+        while (statement != NULL && !found)
+        {
+            VisitStatement(statement);
+            statement = statement->nextStatement;
+        }
+    }
+    
+    virtual void VisitFunctionCall(HLSLFunctionCall * fc) override
+    {
+        if (fc->function->name == name) // @@ This only works because both, intrinsic names and the arguments of FindFunctionCall are allocated statically and strings are pooled.
+        {
+            found = true;
+        }
+        else
+        {
+            // Visit arguments!
+            HLSLTreeVisitor::VisitFunctionCall(fc);
+
+            VisitFunction((HLSLFunction *)fc->function);
+        }
+    }
+};
+
+
+// @@ IC: Add arguments and type to match signature?
+bool FindFunctionCall(HLSLFunction * function, const char * name)
+{
+    FindFunctionCallVisitor visitor;
+ 
+    // For each argument.
+    return visitor.Find(function, name);
+}
+
+
+bool EmulateAlphaTest(HLSLTree* tree, const char* entryName, float alphaRef/*=0.5*/)
+{
+    // Find all return statements of this entry point.
+    HLSLFunction* entry = tree->FindFunction(entryName);
+    if (entry != NULL)
+    {
+        HLSLStatement ** ptr = &entry->statement;
+        HLSLStatement * statement = entry->statement;
+        while (statement != NULL)
+        {
+            if (statement->nodeType == HLSLNodeType_ReturnStatement)
+            {
+                HLSLReturnStatement * returnStatement = (HLSLReturnStatement *)statement;
+                HLSLBaseType returnType = returnStatement->expression->expressionType.baseType;
+                
+                // Build statement: "if (%s.a < 0.5) discard;"
+
+                HLSLDiscardStatement * discard = tree->AddNode<HLSLDiscardStatement>(statement->fileName, statement->line);
+                
+                HLSLExpression * alpha = NULL;
+                if (returnType == HLSLBaseType_Float4 || returnType == HLSLBaseType_Half4)
+                {
+                    // @@ If return expression is a constructor, grab 4th argument.
+                    // That's not as easy, since we support 'float4(float3, float)' or 'float4(float, float3)', extracting
+                    // the latter is not that easy.
+                    /*if (returnStatement->expression->nodeType == HLSLNodeType_ConstructorExpression) {
+                        HLSLConstructorExpression * constructor = (HLSLConstructorExpression *)returnStatement->expression;
+                        //constructor->
+                    }
+                    */
+                    
+                    if (alpha == NULL) {
+                        HLSLMemberAccess * access = tree->AddNode<HLSLMemberAccess>(statement->fileName, statement->line);
+                        access->expressionType = HLSLType(HLSLBaseType_Float);
+                        access->object = returnStatement->expression;     // @@ Is reference OK? Or should we clone expression?
+                        access->field = tree->AddString("a");
+                        access->swizzle = true;
+                        
+                        alpha = access;
+                    }
+                }
+                else if (returnType == HLSLBaseType_Float || returnType == HLSLBaseType_Half)
+                {
+                    alpha = returnStatement->expression;     // @@ Is reference OK? Or should we clone expression?
+                }
+                else {
+                    return false;
+                }
+                
+                HLSLLiteralExpression * threshold = tree->AddNode<HLSLLiteralExpression>(statement->fileName, statement->line);
+                threshold->expressionType = HLSLType(HLSLBaseType_Float);
+                threshold->fValue = alphaRef;
+                threshold->type = HLSLBaseType_Float;
+                
+                HLSLBinaryExpression * condition = tree->AddNode<HLSLBinaryExpression>(statement->fileName, statement->line);
+                condition->expressionType = HLSLType(HLSLBaseType_Bool);
+                condition->binaryOp = HLSLBinaryOp_Less;
+                condition->expression1 = alpha;
+                condition->expression2 = threshold;
+
+                // Insert statement.
+                HLSLIfStatement * st = tree->AddNode<HLSLIfStatement>(statement->fileName, statement->line);
+                st->condition = condition;
+                st->statement = discard;
+                st->nextStatement = statement;
+                *ptr = st;
+            }
+        
+            ptr = &statement->nextStatement;
+            statement = statement->nextStatement;
+        }
+    }
+
+    return true;
+}
 
 
 } // M4

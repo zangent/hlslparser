@@ -10,6 +10,7 @@
 #ifndef CODE_WRITER_H
 #define CODE_WRITER_H
 
+#include "Engine.h"
 #include <string>
 
 #if defined(__GNUC__)
@@ -31,8 +32,7 @@ class CodeWriter
 {
 
 public:
-
-    explicit CodeWriter(Allocator* allocator, bool writeFileNames);
+    explicit CodeWriter(bool writeFileNames);
 
     void BeginLine(int indent, const char* fileName = NULL, int lineNumber = -1);
     M4_PRINTF_ATTR(2, 3) void Write(const char* format, ...);
@@ -46,7 +46,6 @@ public:
 
 private:
 
-    Allocator*      m_allocator;
     std::string     m_buffer;
     int             m_currentLine;
     const char*     m_currentFileName;

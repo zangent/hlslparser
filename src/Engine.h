@@ -1,6 +1,11 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#if _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS 1
+#define __attribute__(...)
+#endif
+
 #include <stdarg.h> // va_list, vsnprintf
 #include <stdlib.h> // malloc
 #include <new> // for placement new
@@ -13,8 +18,6 @@
 #define va_copy(a, b) (a) = (b)
 #endif
 
-
-
 // Engine/Assert.h
 
 #define ASSERT(...)
@@ -26,18 +29,18 @@ namespace M4 {
 
 class Allocator {
 public:
-	template <typename T> T * New() {
-		return (T *)malloc(sizeof(T));
-	}
-	template <typename T> T * New(size_t count) {
-		return (T *)malloc(sizeof(T) * count);
-	}
-	template <typename T> void Delete(T * ptr) {
-		free((void *)ptr);
-	}
-	template <typename T> T * Realloc(T * ptr, size_t count) {
-		return (T *)realloc(ptr, sizeof(T) * count);
-	}
+    template <typename T> T * New() {
+        return (T *)malloc(sizeof(T));
+    }
+    template <typename T> T * New(size_t count) {
+        return (T *)malloc(sizeof(T) * count);
+    }
+    template <typename T> void Delete(T * ptr) {
+        free((void *)ptr);
+    }
+    template <typename T> T * Realloc(T * ptr, size_t count) {
+        return (T *)realloc(ptr, sizeof(T) * count);
+    }
 };
 
 
@@ -85,10 +88,10 @@ void DestroyRange(T * buffer, int new_size, int old_size) {
 template <typename T>
 class Array {
 public:
-	Array(Allocator * allocator) : allocator(allocator), buffer(NULL), size(0), capacity(0) {}
+    Array(Allocator * allocator) : allocator(allocator), buffer(NULL), size(0), capacity(0) {}
 
-	void PushBack(const T & val) {
-		ASSERT(&val < buffer || &val >= buffer+size);
+    void PushBack(const T & val) {
+        ASSERT(&val < buffer || &val >= buffer+size);
 
         int old_size = size;
         int new_size = size + 1;
@@ -96,30 +99,30 @@ public:
         SetSize(new_size);
 
         ConstructRange(buffer, new_size, old_size, val);
-	}
-	T & PushBackNew() {
+    }
+    T & PushBackNew() {
         int old_size = size;
         int new_size = size + 1;
 
-		SetSize(new_size);
+        SetSize(new_size);
 
-		ConstructRange(buffer, new_size, old_size);
+        ConstructRange(buffer, new_size, old_size);
 
         return buffer[old_size];
-	}
-	void Resize(int new_size) {
-		int old_size = size;
+    }
+    void Resize(int new_size) {
+        int old_size = size;
 
-		DestroyRange(buffer, new_size, old_size);
+        DestroyRange(buffer, new_size, old_size);
 
-		SetSize(new_size);
+        SetSize(new_size);
 
-		ConstructRange(buffer, new_size, old_size);
-	}
+        ConstructRange(buffer, new_size, old_size);
+    }
 
-	int GetSize() const { return size; }
-	const T & operator[](int i) const { ASSERT(i < size); return buffer[i]; }
-	T & operator[](int i) { ASSERT(i < size); return buffer[i]; }
+    int GetSize() const { return size; }
+    const T & operator[](int i) const { ASSERT(i < size); return buffer[i]; }
+    T & operator[](int i) { ASSERT(i < size); return buffer[i]; }
 
 private:
 
@@ -144,7 +147,7 @@ private:
 
     // Change array capacity.
     void SetCapacity(int new_capacity) {
-        ASSERT(new_capacity >= m_size);
+        ASSERT(new_capacity >= size);
 
         if (new_capacity == 0) {
             // free the buffer.
@@ -163,10 +166,10 @@ private:
 
 
 private:
-	Allocator * allocator; // @@ Do we really have to keep a pointer to this?
-	T * buffer;
-	int size;
-	int capacity;
+    Allocator * allocator; // @@ Do we really have to keep a pointer to this?
+    T * buffer;
+    int size;
+    int capacity;
 };
 
 
@@ -174,11 +177,15 @@ private:
 
 // @@ Implement this with a hash table!
 struct StringPool {
-	StringPool(Allocator * allocator);
-	const char * AddString(const char * string);
-	bool GetContainsString(const char * string) const;
+    StringPool(Allocator * allocator);
+    ~StringPool();
 
-	Array<const char *> stringArray;
+    const char * AddString(const char * string);
+    const char * AddStringFormat(const char * fmt, ...);
+    const char * AddStringFormatList(const char * fmt, va_list args);
+    bool GetContainsString(const char * string) const;
+
+    Array<const char *> stringArray;
 };
 
 

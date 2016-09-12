@@ -23,6 +23,8 @@ static const char* _reservedWords[] =
 		"float2x2",
         "float3x3",
         "float4x4",
+        "float4x3",
+        "float4x2",
         "half",
         "half2",
         "half3",
@@ -30,6 +32,8 @@ static const char* _reservedWords[] =
 		"half2x2",
         "half3x3",
         "half4x4",
+        "half4x3",
+        "half4x2",
         "bool",
 		"bool2",
 		"bool3",
@@ -556,15 +560,15 @@ void HLSLTokenizer::GetTokenName(char buffer[s_maxIdentifier]) const
 {
     if (m_token == HLSLToken_FloatLiteral || m_token == HLSLToken_HalfLiteral )
     {
-		sprintf( buffer, "%f", m_fValue );
+        sprintf(buffer, "%f", m_fValue);
     }
     else if (m_token == HLSLToken_IntLiteral)
     {
-		sprintf( buffer, "%d", m_iValue );
+        sprintf(buffer, "%d", m_iValue);
     }
     else if (m_token == HLSLToken_Identifier)
     {
-		strcpy( buffer, m_identifier );
+        strcpy(buffer, m_identifier);
     }
     else
     {
@@ -581,46 +585,46 @@ void HLSLTokenizer::GetTokenName(int token, char buffer[s_maxIdentifier])
     }
     else if (token < HLSLToken_LessEqual)
     {
-		strcpy( buffer, _reservedWords[ token - 256 ] );
+        strcpy(buffer, _reservedWords[token - 256]);
     }
     else
     {
         switch (token)
         {
         case HLSLToken_PlusPlus:
-			strcpy( buffer, "++" );
+            strcpy(buffer, "++");
             break;
         case HLSLToken_MinusMinus:
-			strcpy( buffer, "--" );
+            strcpy(buffer, "--");
             break;
         case HLSLToken_PlusEqual:
-			strcpy( buffer, "+=" );
+            strcpy(buffer, "+=");
             break;
         case HLSLToken_MinusEqual:
-			strcpy( buffer, "-=" );
+            strcpy(buffer, "-=");
             break;
         case HLSLToken_TimesEqual:
-			strcpy( buffer, "*=" );
+            strcpy(buffer, "*=");
             break;
         case HLSLToken_DivideEqual:
-			strcpy( buffer, "/=" );
+            strcpy(buffer, "/=");
             break;
 		case HLSLToken_HalfLiteral:
 			strcpy( buffer, "half" );
 			break;
         case HLSLToken_FloatLiteral:
-			strcpy( buffer, "float" );
+            strcpy(buffer, "float");
             break;
         case HLSLToken_IntLiteral:
-			strcpy( buffer, "int" );
+            strcpy(buffer, "int");
             break;
         case HLSLToken_Identifier:
-			strcpy( buffer, "identifier" );
+            strcpy(buffer, "identifier");
             break;
         case HLSLToken_EndOfStream:
-			strcpy( buffer, "<eof>" );
+            strcpy(buffer, "<eof>");
         default:
-			strcpy( buffer, "unknown" );
+            strcpy(buffer, "unknown");
             break;
         }
     }
