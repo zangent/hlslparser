@@ -1,7 +1,33 @@
-hlslparser
+HLSLParser
 ==========
 
+This is a fork of [Unknownworld's hlslparser](https://github.com/unknownworlds/hlslparser) adapted to our needs in The Witness. We currently use it to translate pseudo-HLSL shaders (using the legacy D3D9 syntax) to HLSL10 and Metal Shading Language (MSL). There's also a GLSL translator available that we do not use yet, but that is being maintained by community contributions.
+
+The HLSL parser has been extended with many HLSL10 features, but retaining the original HLSL C-based syntax.
+
+For example, the following:
+
+```C
+float tex2Dcmp(sampler2DShadow s, float3 texcoord_comparevalue);
+float4 tex2DMSfetch(sampler2DMS s, int2 texcoord, int sample);
+int2 tex2Dsize(sampler2D s, int mipmap);
+```
+
+Are equivalent to:
+
+```C++
+float Texture2D::SampleCmp(SamplerComparisonState s, float2 texcoord, float comparevalue)
+float4 Texture2DMS<float4>::Load(int2 texcoord, int sample);
+void Texture2D<float4>::GetDimensions(out uint w, out uint h);
+```
+
+
+
+Here are the original release notes:
+
+
 HLSL Parser and GLSL code generator
+-----------------------------------
 
 This is the code we used in Natural Selection 2 to convert HLSL shader code to
 GLSL for use with OpenGL. The code is pulled from a larger codebase and has some
