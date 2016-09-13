@@ -15,6 +15,8 @@
 #include "HLSLParser.h"
 #include "HLSLTree.h"
 
+#include <string.h>
+
 // Things that are not supported:
 // - Passing swizzled expressions as out or inout arguments. Out arguments are passed by reference in C++, but
 //   swizzled expressions are not addressable.
