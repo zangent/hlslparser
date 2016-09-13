@@ -89,7 +89,7 @@ private:
      * isn't used in the syntax tree. */
     bool ChooseUniqueName(const char* base, char* dst, int dstLength) const;
 
-    const char* GetBuiltInSemantic(const char* semantic, AttributeModifier modifier);
+    const char* GetBuiltInSemantic(const char* semantic, AttributeModifier modifier, int* outputIndex = 0);
     const char* GetAttribQualifier(AttributeModifier modifier);
 
 private:
@@ -107,6 +107,7 @@ private:
     unsigned int        m_flags;
 
     bool                m_outputPosition;
+    int                 m_outputTargets;
 
     const char*         m_outAttribPrefix;
     const char*         m_inAttribPrefix;

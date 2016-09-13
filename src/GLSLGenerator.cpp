@@ -127,6 +127,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_sinCosFunction[0]         = 0;
 	m_bvecTernary[ 0 ]			= 0;
     m_outputPosition            = false;
+    m_outputTargets             = 0;
 }
 
 bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, const char* entryName, unsigned int flags)
@@ -203,10 +204,12 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     else if (m_version == Version_100_ES)
     {
         m_writer.WriteLine(0, "#version 100");
+        m_writer.WriteLine(0, "precision highp float;");
     }
     else if (m_version == Version_300_ES)
     {
         m_writer.WriteLine(0, "#version 300 es");
+        m_writer.WriteLine(0, "precision highp float;");
     }
     else
     {
@@ -364,6 +367,16 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     }
 
     OutputAttributes(entryFunction);
+
+    if (m_target == Target_FragmentShader)
+    {
+        if (!m_outputTargets)
+            Error("Fragment shader must output a color");
+
+        if (!m_versionLegacy)
+            m_writer.WriteLine(0, "out vec4 rast_FragData[%d];", m_outputTargets);
+    }
+
     OutputStatements(0, statement);
     OutputEntryCaller(entryFunction);
 
@@ -1199,7 +1212,8 @@ void GLSLGenerator::OutputAttributes(HLSLFunction* entryFunction)
 
 void GLSLGenerator::OutputSetOutAttribute(const char* semantic, const char* resultName)
 {
-    const char* builtInSemantic = GetBuiltInSemantic(semantic, AttributeModifier_Out);
+    int outputIndex = -1;
+    const char* builtInSemantic = GetBuiltInSemantic(semantic, AttributeModifier_Out, &outputIndex);
     if (builtInSemantic != NULL)
     {
         if (String_Equal(builtInSemantic, "gl_Position"))
@@ -1229,10 +1243,18 @@ void GLSLGenerator::OutputSetOutAttribute(const char* semantic, const char* resu
             // fragment will be rejected unlike in D3D, so clamp it.
             m_writer.WriteLine(1, "%s = clamp(float(%s), 0.0, 1.0);", builtInSemantic, resultName);
         }
+        else if (outputIndex >= 0)
+        {
+            m_writer.WriteLine(1, "%s[%d] = %s;", builtInSemantic, outputIndex, resultName);
+        }
         else
         {
             m_writer.WriteLine(1, "%s = %s;", builtInSemantic, resultName);
         }
+    }
+    else if (m_target == Target_FragmentShader)
+    {
+        Error("Output attribute %s does not map to any built-ins", semantic);
     }
     else
     {
@@ -1492,33 +1514,42 @@ bool GLSLGenerator::ChooseUniqueName(const char* base, char* dst, int dstLength)
     return false;
 }
 
-const char* GLSLGenerator::GetBuiltInSemantic(const char* semantic, AttributeModifier modifier)
+const char* GLSLGenerator::GetBuiltInSemantic(const char* semantic, AttributeModifier modifier, int* outputIndex)
 {
-    if (m_target == Target_VertexShader && modifier == AttributeModifier_Out && String_EqualNoCase(semantic, "POSITION"))
+    if (outputIndex)
+        *outputIndex = -1;
+
+    if (m_target == Target_VertexShader && modifier == AttributeModifier_Out && String_Equal(semantic, "POSITION"))
         return "gl_Position";
 
-    if (m_target == Target_VertexShader && modifier == AttributeModifier_Out && String_EqualNoCase(semantic, "SV_POSITION"))
+    if (m_target == Target_VertexShader && modifier == AttributeModifier_Out && String_Equal(semantic, "SV_Position"))
         return "gl_Position";
 
-    if (m_target == Target_FragmentShader && modifier == AttributeModifier_Out && String_EqualNoCase(semantic, "DEPTH"))
+    if (m_target == Target_FragmentShader && modifier == AttributeModifier_Out && String_Equal(semantic, "SV_Depth"))
         return "gl_FragDepth";
 
-    if (m_target == Target_FragmentShader && modifier == AttributeModifier_In && String_EqualNoCase(semantic, "SV_POSITION"))
+    if (m_target == Target_FragmentShader && modifier == AttributeModifier_In && String_Equal(semantic, "SV_Position"))
         return "gl_FragCoord";
 
-    if (m_target == Target_FragmentShader && modifier == AttributeModifier_Out && m_versionLegacy)
+    if (m_target == Target_FragmentShader && modifier == AttributeModifier_Out)
     {
-        if (String_EqualNoCase(semantic, "COLOR0"))
-            return "gl_FragData[0]";
+        int index = -1;
 
-        if (String_EqualNoCase(semantic, "COLOR1"))
-            return "gl_FragData[1]";
+        if (strncmp(semantic, "COLOR", 5) == 0)
+            index = atoi(semantic + 5);
+        else if (strncmp(semantic, "SV_Target", 9) == 0)
+            index = atoi(semantic + 9);
 
-        if (String_EqualNoCase(semantic, "COLOR2"))
-            return "gl_FragData[2]";
+        if (index >= 0)
+        {
+            if (m_outputTargets <= index)
+                m_outputTargets = index + 1;
 
-        if (String_EqualNoCase(semantic, "COLOR3"))
-            return "gl_FragData[3]";
+            if (outputIndex)
+                *outputIndex = index;
+
+            return m_versionLegacy ? "gl_FragData" : "rast_FragData";
+        }
     }
 
     return NULL;
