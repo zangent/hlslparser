@@ -83,7 +83,7 @@ static const char* GetTypeName(const HLSLType& type)
 static bool is_semantic(const char * semantic, const char * name, int index)
 {
     const char * s = semantic;
-    int n = strlen(name);
+    size_t n = strlen(name);
 
     if (strncmp(s, name, n) != 0)
     {
@@ -166,6 +166,11 @@ MSLGenerator::MSLGenerator()
     m_entryName                     = NULL;
     m_target                        = Target_VertexShader;
     m_error = false;
+
+    m_per_pass_buffer    = NULL;
+    m_per_item_buffer    = NULL;
+    m_firstClassArgument = NULL;
+    m_lastClassArgument  = NULL;
 }
 
 // Copied from GLSLGenerator

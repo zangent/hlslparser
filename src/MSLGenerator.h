@@ -47,14 +47,15 @@ private:
         //const char* typeName;     // @@ Do we need more than the type name?
         const char* registerName;
 
-        ClassArgument * nextArg = NULL;
+        ClassArgument * nextArg;
         
         ClassArgument(const char* name, HLSLType type, const char * registerName) :
-            name(name), type(type), registerName(registerName) {};
+            name(name), type(type), registerName(registerName)
+		{
+			nextArg = NULL;
+		}
     };
 
-    ClassArgument * m_firstClassArgument = NULL;
-    ClassArgument * m_lastClassArgument = NULL;
     void AddClassArgument(ClassArgument * arg);
 
     void Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFunction);
@@ -91,6 +92,9 @@ private:
     // TODO: Temporary hack to access uniforms struct members
     HLSLBuffer* m_per_pass_buffer;
     HLSLBuffer* m_per_item_buffer;
+
+    ClassArgument * m_firstClassArgument;
+    ClassArgument * m_lastClassArgument;
 };
 
 } // M4
