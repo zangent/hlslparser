@@ -1,6 +1,8 @@
 #include "HLSLParser.h"
+
 #include "GLSLGenerator.h"
 #include "HLSLGenerator.h"
+#include "MSLGenerator.h"
 
 #include <fstream>
 #include <sstream>
@@ -17,6 +19,7 @@ enum Language
 	Language_GLSL,
 	Language_HLSL,
 	Language_LegacyHLSL,
+	Language_Metal,
 };
 
 std::string ReadFile( const char* fileName )
@@ -43,7 +46,8 @@ void PrintUsage()
 		<< " -vs         generate vertex shader\n"
 		<< " -glsl       generate GLSL (default)\n"
 		<< " -hlsl       generate HLSL\n"
-		<< " -legacyhlsl generate legacy HLSL\n";
+		<< " -legacyhlsl generate legacy HLSL\n"
+		<< " -metal      generate MSL\n";
 }
 
 int main( int argc, char* argv[] )
@@ -85,6 +89,10 @@ int main( int argc, char* argv[] )
 		else if( String_Equal( arg, "-legacyhlsl" ) )
 		{
 			language = Language_LegacyHLSL;
+		}
+		else if( String_Equal( arg, "-metal" ) )
+		{
+			language = Language_Metal;
 		}
 		else if( fileName == NULL )
 		{
@@ -134,10 +142,21 @@ int main( int argc, char* argv[] )
 
 		std::cout << generator.GetResult();
 	}
-	else
+	else if (language == Language_HLSL)
 	{
 		HLSLGenerator generator( &allocator );
 		if (!generator.Generate( &tree, HLSLGenerator::Target(target), entryName, language == Language_LegacyHLSL ))
+		{
+			Log_Error( "Translation failed, aborting\n" );
+			return 1;
+		}
+
+		std::cout << generator.GetResult();
+	}
+	else if (language == Language_Metal)
+	{
+		MSLGenerator generator;
+		if (!generator.Generate( &tree, MSLGenerator::Target(target), entryName ))
 		{
 			Log_Error( "Translation failed, aborting\n" );
 			return 1;
