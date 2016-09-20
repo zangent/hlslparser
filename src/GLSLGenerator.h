@@ -37,6 +37,7 @@ public:
     enum Flags
     {
         Flag_FlipPositionOutput = 1 << 0,
+        Flag_EmulateConstantBuffer = 1 << 1,
     };
 
     explicit GLSLGenerator(Allocator* allocator);
@@ -75,6 +76,10 @@ private:
     void OutputSetOutAttribute(const char* semantic, const char* resultName);
 
     void OutputZeroLiteral(const HLSLType& type);
+
+    void OutputBuffer(int indent, HLSLBuffer* buffer);
+    void OutputBufferLayout(int indent, HLSLBuffer* buffer, unsigned int& offset, const char* uniform);
+    void OutputBufferLayout(int indent, const HLSLType& type, unsigned int& offset, const char* uniform);
 
     HLSLFunction* FindFunction(HLSLRoot* root, const char* name);
     HLSLStruct* FindStruct(HLSLRoot* root, const char* name);

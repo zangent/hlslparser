@@ -350,6 +350,7 @@ struct HLSLDeclaration : public HLSLStatement
         semantic        = NULL;
         nextDeclaration = NULL;
         assignment      = NULL;
+        buffer          = NULL;
     }
     const char*         name;
     HLSLType            type;
@@ -357,6 +358,7 @@ struct HLSLDeclaration : public HLSLStatement
     const char*         semantic;
     HLSLDeclaration*    nextDeclaration;    // If multiple variables declared on a line.
     HLSLExpression*     assignment;
+    HLSLBuffer*         buffer;
 };
 
 struct HLSLStruct : public HLSLStatement

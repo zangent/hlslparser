@@ -1349,6 +1349,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
                 return false;
             }
             DeclareVariable( field->name, field->type );
+            field->buffer = buffer;
             if (buffer->field == NULL)
             {
                 buffer->field = field;

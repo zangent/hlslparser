@@ -663,10 +663,29 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         }
         else
         {
+            if (memberAccess->object->nodeType == HLSLNodeType_IdentifierExpression)
+            {
+                HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(memberAccess->object);
 
-            m_writer.Write("(");
-            OutputExpression(memberAccess->object);
-            m_writer.Write(")");
+                // Route cbuffer member access through an accessor
+                if (identifierExpression->global && (m_flags & Flag_EmulateConstantBuffer) != 0)
+                {
+                    HLSLDeclaration * declaration = m_tree->FindGlobalDeclaration(identifierExpression->name);
+
+                    if (declaration && declaration->buffer)
+                    {
+                        m_writer.Write("%s_FakeCB().", declaration->buffer->name);
+                    }
+                }
+
+                OutputExpression(memberAccess->object);
+            }
+            else
+            {
+                m_writer.Write("(");
+                OutputExpression(memberAccess->object);
+                m_writer.Write(")");
+            }
 
 			if( memberAccess->object->expressionType.baseType == HLSLBaseType_Float2x2 ||
 				memberAccess->object->expressionType.baseType == HLSLBaseType_Float3x3 ||
@@ -977,21 +996,7 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
         else if (statement->nodeType == HLSLNodeType_Buffer)
         {
             HLSLBuffer* buffer = static_cast<HLSLBuffer*>(statement);
-            // Empty uniform blocks cause compilation errors on NVIDIA, so don't emit them.
-            if (buffer->field != NULL)
-            {
-                m_writer.WriteLine(indent, buffer->fileName, buffer->line, "layout (std140) uniform %s {", buffer->name);
-                HLSLDeclaration* field = buffer->field;
-                while (field != NULL)
-                {
-                    m_writer.BeginLine(indent + 1, field->fileName, field->line);
-                    OutputDeclaration(field->type, field->name);
-                    m_writer.Write(";");
-                    m_writer.EndLine();
-                    field = (HLSLDeclaration*)field->nextStatement;
-                }
-                m_writer.WriteLine(indent, "};");
-            }
+            OutputBuffer(indent, buffer);
         }
         else if (statement->nodeType == HLSLNodeType_Function)
         {
@@ -1102,6 +1107,161 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
 
     }
 
+}
+
+void GLSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
+{
+    // Empty uniform blocks cause compilation errors on NVIDIA, so don't emit them.
+    if (buffer->field == NULL)
+        return;
+
+    if (m_flags & Flag_EmulateConstantBuffer)
+    {
+        // Emit a struct with a getter; count on the optimizer to simplify this
+        m_writer.WriteLine(indent, buffer->fileName, buffer->line, "struct %s_FakeCBType {", buffer->name);
+        HLSLDeclaration* field = buffer->field;
+        while (field != NULL)
+        {
+            m_writer.BeginLine(indent + 1, field->fileName, field->line);
+            OutputDeclaration(field->type, field->name);
+            m_writer.Write(";");
+            m_writer.EndLine();
+            field = (HLSLDeclaration*)field->nextStatement;
+        }
+        m_writer.WriteLine(indent, "};");
+
+        unsigned int size = 0;
+        OutputBufferLayout(indent, buffer, size, NULL);
+
+        m_writer.WriteLine(indent, "uniform vec4 %s[%d];", buffer->name, (size + 3) / 4);
+
+        m_writer.WriteLine(indent, buffer->fileName, buffer->line, "%s_FakeCBType %s_FakeCB() {", buffer->name, buffer->name);
+        m_writer.WriteLine(indent + 1, "return %s_FakeCBType(", buffer->name);
+
+        unsigned int offset = 0;
+        OutputBufferLayout(indent, buffer, offset, buffer->name);
+
+        m_writer.WriteLine(indent + 1, ");");
+        m_writer.WriteLine(indent, "}");
+    }
+    else
+    {
+        m_writer.WriteLine(indent, buffer->fileName, buffer->line, "layout (std140) uniform %s {", buffer->name);
+        HLSLDeclaration* field = buffer->field;
+        while (field != NULL)
+        {
+            m_writer.BeginLine(indent + 1, field->fileName, field->line);
+            OutputDeclaration(field->type, field->name);
+            m_writer.Write(";");
+            m_writer.EndLine();
+            field = (HLSLDeclaration*)field->nextStatement;
+        }
+        m_writer.WriteLine(indent, "};");
+    }
+}
+
+inline void alignForWrite(unsigned int& offset, unsigned int size)
+{
+    ASSERT(size <= 4);
+
+    if (offset / 4 != (offset + size - 1) / 4)
+        offset = (offset + 3) & ~3;
+}
+
+void GLSLGenerator::OutputBufferLayout(int indent, HLSLBuffer* buffer, unsigned int& offset, const char* uniform)
+{
+    HLSLDeclaration* field = buffer->field;
+    while (field != NULL)
+    {
+        OutputBufferLayout(indent, field->type, offset, uniform);
+
+        if (field->nextStatement)
+            m_writer.Write(", ");
+
+        field = (HLSLDeclaration*)field->nextStatement;
+    }
+}
+
+void GLSLGenerator::OutputBufferLayout(int indent, const HLSLType& type, unsigned int& offset, const char* uniform)
+{
+    if (type.array)
+    {
+        Error("Constant buffer layout is not supported for %s[]", GetTypeName(type));
+    }
+    else if (type.baseType == HLSLBaseType_Float)
+    {
+        alignForWrite(offset, 1);
+
+        if (uniform)
+            m_writer.WriteLine(indent + 1, "%s[%d][%d]", uniform, offset / 4, offset % 4);
+
+        offset += 1;
+    }
+    else if (type.baseType == HLSLBaseType_Float2)
+    {
+        alignForWrite(offset, 2);
+
+        if (uniform)
+            m_writer.WriteLine(indent + 1, "%s[%d].%s", uniform, offset / 4, (offset % 4) == 0 ? "xy" : (offset % 4) == 1 ? "yz" : "zw");
+
+        offset += 2;
+    }
+    else if (type.baseType == HLSLBaseType_Float3)
+    {
+        alignForWrite(offset, 3);
+
+        if (uniform)
+            m_writer.WriteLine(indent + 1, "%s[%d].%s", uniform, offset / 4, (offset % 4) == 0 ? "xyz" : "yzw");
+
+        offset += 3;
+    }
+    else if (type.baseType == HLSLBaseType_Float4)
+    {
+        alignForWrite(offset, 4);
+
+        if (uniform)
+            m_writer.WriteLine(indent + 1, "%s[%d]", uniform, offset / 4);
+
+        offset += 4;
+    }
+    else if (type.baseType == HLSLBaseType_Float4x4)
+    {
+        alignForWrite(offset, 4);
+
+        if (uniform)
+            m_writer.WriteLine(indent + 1, "mat4(%s[%d], %s[%d], %s[%d], %s[%d])", uniform, offset / 4, uniform, offset / 4 + 1, uniform, offset / 4 + 2, uniform, offset / 4 + 3);
+
+        offset += 16;
+    }
+    else if (type.baseType == HLSLBaseType_UserDefined)
+    {
+        HLSLStruct * st = m_tree->FindGlobalStruct(type.typeName);
+
+        if (st)
+        {
+            if (uniform)
+                m_writer.WriteLine(indent + 1, "%s(", st->name);
+
+            for (HLSLStructField* field = st->field; field; field = field->nextField)
+            {
+                OutputBufferLayout(indent + 2, field->type, offset, uniform);
+
+                if (uniform && field->nextField)
+                    m_writer.WriteLine(indent + 2, ",");
+            }
+
+            if (uniform)
+                m_writer.WriteLine(indent + 1, ")");
+        }
+        else
+        {
+            Error("Unknown type %s", type.typeName);
+        }
+    }
+    else
+    {
+        Error("Constant buffer layout is not supported for %s", GetTypeName(type));
+    }
 }
 
 HLSLFunction* GLSLGenerator::FindFunction(HLSLRoot* root, const char* name)
