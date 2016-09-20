@@ -461,6 +461,18 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
     {
         HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
         const char* name = identifierExpression->name;
+
+        // Route cbuffer member access through an accessor
+        if (identifierExpression->global && (m_flags & Flag_EmulateConstantBuffer) != 0)
+        {
+            HLSLDeclaration * declaration = m_tree->FindGlobalDeclaration(name);
+
+            if (declaration && declaration->buffer)
+            {
+                m_writer.Write("%s_FakeCB().", declaration->buffer->name);
+            }
+        }
+
         OutputIdentifier(name);
     }
     else if (expression->nodeType == HLSLNodeType_ConstructorExpression)
@@ -663,29 +675,9 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         }
         else
         {
-            if (memberAccess->object->nodeType == HLSLNodeType_IdentifierExpression)
-            {
-                HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(memberAccess->object);
-
-                // Route cbuffer member access through an accessor
-                if (identifierExpression->global && (m_flags & Flag_EmulateConstantBuffer) != 0)
-                {
-                    HLSLDeclaration * declaration = m_tree->FindGlobalDeclaration(identifierExpression->name);
-
-                    if (declaration && declaration->buffer)
-                    {
-                        m_writer.Write("%s_FakeCB().", declaration->buffer->name);
-                    }
-                }
-
-                OutputExpression(memberAccess->object);
-            }
-            else
-            {
-                m_writer.Write("(");
-                OutputExpression(memberAccess->object);
-                m_writer.Write(")");
-            }
+            m_writer.Write("(");
+            OutputExpression(memberAccess->object);
+            m_writer.Write(")");
 
 			if( memberAccess->object->expressionType.baseType == HLSLBaseType_Float2x2 ||
 				memberAccess->object->expressionType.baseType == HLSLBaseType_Float3x3 ||
