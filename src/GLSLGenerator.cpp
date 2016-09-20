@@ -1123,15 +1123,17 @@ void GLSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
         m_writer.WriteLine(indent, "};");
 
         unsigned int size = 0;
-        OutputBufferLayout(indent, buffer, size, NULL);
+        OutputBufferLayout(indent, buffer, size, NULL, 0);
 
-        m_writer.WriteLine(indent, "uniform vec4 %s[%d];", buffer->name, (size + 3) / 4);
+        unsigned int uniformSize = (size + 3) / 4;
+
+        m_writer.WriteLine(indent, "uniform vec4 %s[%d];", buffer->name, uniformSize);
 
         m_writer.WriteLine(indent, buffer->fileName, buffer->line, "%s_FakeCBType %s_FakeCB() {", buffer->name, buffer->name);
         m_writer.WriteLine(indent + 1, "return %s_FakeCBType(", buffer->name);
 
         unsigned int offset = 0;
-        OutputBufferLayout(indent, buffer, offset, buffer->name);
+        OutputBufferLayout(indent, buffer, offset, buffer->name, uniformSize);
 
         m_writer.WriteLine(indent + 1, ");");
         m_writer.WriteLine(indent, "}");
@@ -1160,12 +1162,12 @@ inline void alignForWrite(unsigned int& offset, unsigned int size)
         offset = (offset + 3) & ~3;
 }
 
-void GLSLGenerator::OutputBufferLayout(int indent, HLSLBuffer* buffer, unsigned int& offset, const char* uniform)
+void GLSLGenerator::OutputBufferLayout(int indent, HLSLBuffer* buffer, unsigned int& offset, const char* uniform, unsigned int uniformSize)
 {
     HLSLDeclaration* field = buffer->field;
     while (field != NULL)
     {
-        OutputBufferLayout(indent, field->type, offset, uniform);
+        OutputBufferLayout(indent, field->type, offset, uniform, uniformSize);
 
         if (field->nextStatement)
             m_writer.Write(", ");
@@ -1174,11 +1176,26 @@ void GLSLGenerator::OutputBufferLayout(int indent, HLSLBuffer* buffer, unsigned 
     }
 }
 
-void GLSLGenerator::OutputBufferLayout(int indent, const HLSLType& type, unsigned int& offset, const char* uniform)
+void GLSLGenerator::OutputBufferLayout(int indent, const HLSLType& type, unsigned int& offset, const char* uniform, unsigned int uniformSize)
 {
     if (type.array)
     {
-        Error("Constant buffer layout is not supported for %s[]", GetTypeName(type));
+        int arraySize = 0;
+        m_tree->GetExpressionValue(type.arraySize, arraySize);
+
+        if (type.baseType == HLSLBaseType_Float4 && offset == 0 && (arraySize == uniformSize || uniformSize == 0))
+        {
+            alignForWrite(offset, 4);
+
+            if (uniform)
+                m_writer.WriteLine(indent + 1, "%s", uniform);
+
+            offset += arraySize * 4;
+        }
+        else
+        {
+            Error("Constant buffer layout is not supported for %s[]", GetTypeName(type));
+        }
     }
     else if (type.baseType == HLSLBaseType_Float)
     {
@@ -1236,7 +1253,7 @@ void GLSLGenerator::OutputBufferLayout(int indent, const HLSLType& type, unsigne
 
             for (HLSLStructField* field = st->field; field; field = field->nextField)
             {
-                OutputBufferLayout(indent + 2, field->type, offset, uniform);
+                OutputBufferLayout(indent + 2, field->type, offset, uniform, uniformSize);
 
                 if (uniform && field->nextField)
                     m_writer.WriteLine(indent + 2, ",");
