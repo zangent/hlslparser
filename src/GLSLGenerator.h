@@ -38,6 +38,7 @@ public:
     {
         Flag_FlipPositionOutput = 1 << 0,
         Flag_EmulateConstantBuffer = 1 << 1,
+        Flag_PackMatrixRowMajor = 1 << 2,
     };
 
     explicit GLSLGenerator(Allocator* allocator);
