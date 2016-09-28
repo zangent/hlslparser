@@ -768,22 +768,26 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
                 Error("mul expects 2 arguments");
                 return;
             }
-			if (m_flags & Flag_PackMatrixRowMajor)
-			{
-				m_writer.Write("((");
-				OutputExpression(argument[1], &functionCall->function->argument->nextArgument->type);
-				m_writer.Write(") * (");
-				OutputExpression(argument[0], &functionCall->function->argument->type);
-				m_writer.Write("))");
-			}
-			else
-			{
-				m_writer.Write("((");
-				OutputExpression(argument[0], &functionCall->function->argument->type);
-				m_writer.Write(") * (");
-				OutputExpression(argument[1], &functionCall->function->argument->nextArgument->type);
-				m_writer.Write("))");
-			}
+
+            const HLSLType& type0 = functionCall->function->argument->type;
+            const HLSLType& type1 = functionCall->function->argument->nextArgument->type;
+
+            if (m_flags & Flag_PackMatrixRowMajor)
+            {
+                m_writer.Write("((");
+                OutputExpression(argument[1], &type1);
+                m_writer.Write(") * (");
+                OutputExpression(argument[0], &type0);
+                m_writer.Write("))");
+            }
+            else
+            {
+                m_writer.Write("((");
+                OutputExpression(argument[0], &type0);
+                m_writer.Write(") * (");
+                OutputExpression(argument[1], &type1);
+                m_writer.Write("))");
+            }
             handled = true;
         }
         else if (String_Equal(functionName, "saturate"))
