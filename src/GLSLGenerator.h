@@ -39,6 +39,7 @@ public:
         Flag_FlipPositionOutput = 1 << 0,
         Flag_EmulateConstantBuffer = 1 << 1,
         Flag_PackMatrixRowMajor = 1 << 2,
+        Flag_LowerMatrixMultiplication = 1 << 3,
     };
 
     explicit GLSLGenerator(Allocator* allocator);
@@ -120,6 +121,7 @@ private:
 
     char                m_matrixRowFunction[64];
     char                m_matrixCtorFunction[64];
+    char                m_matrixMulFunction[64];
     char                m_clipFunction[64];
     char                m_tex2DlodFunction[64];
     char                m_tex2DbiasFunction[64];

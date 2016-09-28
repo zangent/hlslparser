@@ -115,6 +115,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_error                     = false;
     m_matrixRowFunction[0]      = 0;
     m_matrixCtorFunction[0]     = 0;
+    m_matrixMulFunction[0]      = 0;
     m_clipFunction[0]           = 0;
     m_tex2DlodFunction[0]       = 0;
     m_tex2DbiasFunction[0]      = 0;
@@ -142,6 +143,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
 
     ChooseUniqueName("matrix_row", m_matrixRowFunction, sizeof(m_matrixRowFunction));
     ChooseUniqueName("matrix_ctor", m_matrixCtorFunction, sizeof(m_matrixCtorFunction));
+    ChooseUniqueName("matrix_mul", m_matrixMulFunction, sizeof(m_matrixMulFunction));
     ChooseUniqueName("clip", m_clipFunction, sizeof(m_clipFunction));
     ChooseUniqueName("tex2Dlod", m_tex2DlodFunction, sizeof(m_tex2DlodFunction));
     ChooseUniqueName("tex2Dbias", m_tex2DbiasFunction, sizeof(m_tex2DbiasFunction));
@@ -225,6 +227,18 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     if (m_version == Version_110)
     {
         m_writer.WriteLine(0, "mat3 %s(mat4 m) { return mat3(m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2]); }", m_matrixCtorFunction);
+    }
+
+    // Output the special functions used for matrix multiplication lowering
+    // They make sure glsl-optimizer can fold expressions better
+    if (m_tree->NeedsFunction("mul") && (m_flags & Flag_LowerMatrixMultiplication))
+    {
+        m_writer.WriteLine(0, "vec2 %s(mat2 m, vec2 v) { return m[0] * v.x + m[1] * v.y; }", m_matrixMulFunction);
+        m_writer.WriteLine(0, "vec2 %s(vec2 v, mat2 m) { return vec2(dot(m[0], v), dot(m[1], v)); }", m_matrixMulFunction);
+        m_writer.WriteLine(0, "vec3 %s(mat3 m, vec3 v) { return m[0] * v.x + m[1] * v.y + m[2] * v.z; }", m_matrixMulFunction);
+        m_writer.WriteLine(0, "vec3 %s(vec3 v, mat3 m) { return vec3(dot(m[0], v), dot(m[1], v), dot(m[2], v)); }", m_matrixMulFunction);
+        m_writer.WriteLine(0, "vec4 %s(mat4 m, vec4 v) { return m[0] * v.x + m[1] * v.y + m[2] * v.z + m[3] * v.w; }", m_matrixMulFunction);
+        m_writer.WriteLine(0, "vec4 %s(vec4 v, mat4 m) { return vec4(dot(m[0], v), dot(m[1], v), dot(m[2], v), dot(m[3], v)); }", m_matrixMulFunction);
     }
 
     // Output the special function used to emulate HLSL clip.
@@ -772,22 +786,26 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
             const HLSLType& type0 = functionCall->function->argument->type;
             const HLSLType& type1 = functionCall->function->argument->nextArgument->type;
 
+            const char* prefix = (m_flags & Flag_LowerMatrixMultiplication) ? m_matrixMulFunction : "";
+            const char* infix = (m_flags & Flag_LowerMatrixMultiplication) ? "," : "*";
+
             if (m_flags & Flag_PackMatrixRowMajor)
             {
-                m_writer.Write("((");
+                m_writer.Write("%s((", prefix);
                 OutputExpression(argument[1], &type1);
-                m_writer.Write(") * (");
+                m_writer.Write(")%s(", infix);
                 OutputExpression(argument[0], &type0);
                 m_writer.Write("))");
             }
             else
             {
-                m_writer.Write("((");
-                OutputExpression(argument[0], &type0);
-                m_writer.Write(") * (");
+                m_writer.Write("%s((", prefix);
+                    OutputExpression(argument[0], &type0);
+                m_writer.Write(")%s(", infix);
                 OutputExpression(argument[1], &type1);
                 m_writer.Write("))");
             }
+
             handled = true;
         }
         else if (String_Equal(functionName, "saturate"))
