@@ -1069,7 +1069,7 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
             }
             else
             {
-                m_writer.WriteLine(indent, returnStatement->fileName, returnStatement->line, "return;");
+                m_writer.WriteLineTagged(indent, returnStatement->fileName, returnStatement->line, "return;");
             }
         }
         else if (statement->nodeType == HLSLNodeType_DiscardStatement)
@@ -1077,18 +1077,18 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
             HLSLDiscardStatement* discardStatement = static_cast<HLSLDiscardStatement*>(statement);
             if (m_target == Target_FragmentShader)
             {
-                m_writer.WriteLine(indent, discardStatement->fileName, discardStatement->line, "discard;");
+                m_writer.WriteLineTagged(indent, discardStatement->fileName, discardStatement->line, "discard;");
             }
         }
         else if (statement->nodeType == HLSLNodeType_BreakStatement)
         {
             HLSLBreakStatement* breakStatement = static_cast<HLSLBreakStatement*>(statement);
-            m_writer.WriteLine(indent, breakStatement->fileName, breakStatement->line, "break;");
+            m_writer.WriteLineTagged(indent, breakStatement->fileName, breakStatement->line, "break;");
         }
         else if (statement->nodeType == HLSLNodeType_ContinueStatement)
         {
             HLSLContinueStatement* continueStatement = static_cast<HLSLContinueStatement*>(statement);
-            m_writer.WriteLine(indent, continueStatement->fileName, continueStatement->line, "continue;");
+            m_writer.WriteLineTagged(indent, continueStatement->fileName, continueStatement->line, "continue;");
         }
         else if (statement->nodeType == HLSLNodeType_IfStatement)
         {
@@ -1143,7 +1143,7 @@ void GLSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
     if (m_flags & Flag_EmulateConstantBuffer)
     {
         // Emit a struct with a getter; count on the optimizer to simplify this
-        m_writer.WriteLine(indent, buffer->fileName, buffer->line, "struct %s_FakeCBType {", buffer->name);
+        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "struct %s_FakeCBType {", buffer->name);
         HLSLDeclaration* field = buffer->field;
         while (field != NULL)
         {
@@ -1162,7 +1162,7 @@ void GLSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
 
         m_writer.WriteLine(indent, "uniform vec4 %s[%d];", buffer->name, uniformSize);
 
-        m_writer.WriteLine(indent, buffer->fileName, buffer->line, "%s_FakeCBType %s_FakeCB() {", buffer->name, buffer->name);
+        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "%s_FakeCBType %s_FakeCB() {", buffer->name, buffer->name);
         m_writer.WriteLine(indent + 1, "return %s_FakeCBType(", buffer->name);
 
         unsigned int offset = 0;
@@ -1173,7 +1173,7 @@ void GLSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
     }
     else
     {
-        m_writer.WriteLine(indent, buffer->fileName, buffer->line, "layout (std140) uniform %s {", buffer->name);
+        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "layout (std140) uniform %s {", buffer->name);
         HLSLDeclaration* field = buffer->field;
         while (field != NULL)
         {

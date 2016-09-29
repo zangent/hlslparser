@@ -8,7 +8,7 @@ OBJECTS=$(SOURCES:%=$(BUILD)/%.o)
 
 EXECUTABLE=$(BUILD)/hlslparser
 
-CXXFLAGS=-g -Wall -std=c++11
+CXXFLAGS=-g -Wall -Wformat -Wformat-nonliteral -std=c++11
 
 all: $(EXECUTABLE)
 

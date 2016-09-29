@@ -39,7 +39,7 @@ public:
     void EndLine(const char* text = NULL);
 
     M4_PRINTF_ATTR(3, 4) void WriteLine(int indent, const char* format, ...);
-    M4_PRINTF_ATTR(5, 6) void WriteLine(int indent, const char* fileName, int lineNumber, const char* format, ...);
+    M4_PRINTF_ATTR(5, 6) void WriteLineTagged(int indent, const char* fileName, int lineNumber, const char* format, ...);
 
     const char* GetResult() const;
     void Reset();

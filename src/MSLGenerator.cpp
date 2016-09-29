@@ -847,23 +847,23 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
             }
             else
             {
-                m_writer.WriteLine(indent, returnStatement->fileName, returnStatement->line, "return;");
+                m_writer.WriteLineTagged(indent, returnStatement->fileName, returnStatement->line, "return;");
             }
         }
         else if (statement->nodeType == HLSLNodeType_DiscardStatement)
         {
             HLSLDiscardStatement* discardStatement = static_cast<HLSLDiscardStatement*>(statement);
-            m_writer.WriteLine(indent, discardStatement->fileName, discardStatement->line, "discard_fragment();");
+            m_writer.WriteLineTagged(indent, discardStatement->fileName, discardStatement->line, "discard_fragment();");
         }
         else if (statement->nodeType == HLSLNodeType_BreakStatement)
         {
             HLSLBreakStatement* breakStatement = static_cast<HLSLBreakStatement*>(statement);
-            m_writer.WriteLine(indent, breakStatement->fileName, breakStatement->line, "break;");
+            m_writer.WriteLineTagged(indent, breakStatement->fileName, breakStatement->line, "break;");
         }
         else if (statement->nodeType == HLSLNodeType_ContinueStatement)
         {
             HLSLContinueStatement* continueStatement = static_cast<HLSLContinueStatement*>(statement);
-            m_writer.WriteLine(indent, continueStatement->fileName, continueStatement->line, "continue;");
+            m_writer.WriteLineTagged(indent, continueStatement->fileName, continueStatement->line, "continue;");
         }
         else if (statement->nodeType == HLSLNodeType_IfStatement)
         {
@@ -900,7 +900,7 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
         else if (statement->nodeType == HLSLNodeType_BlockStatement)
         {
             HLSLBlockStatement* blockStatement = static_cast<HLSLBlockStatement*>(statement);
-            m_writer.WriteLine(indent, blockStatement->fileName, blockStatement->line, "{");
+            m_writer.WriteLineTagged(indent, blockStatement->fileName, blockStatement->line, "{");
             OutputStatements(indent + 1, blockStatement->statement);
             m_writer.WriteLine(indent, "}");
         }
@@ -978,7 +978,7 @@ void MSLGenerator::OutputDeclaration(HLSLDeclaration* declaration)
 
 void MSLGenerator::OutputStruct(int indent, HLSLStruct* structure)
 {
-    m_writer.WriteLine(indent, structure->fileName, structure->line, "struct %s {", structure->name);
+    m_writer.WriteLineTagged(indent, structure->fileName, structure->line, "struct %s {", structure->name);
     HLSLStructField* field = structure->field;
     while (field != NULL)
     {
