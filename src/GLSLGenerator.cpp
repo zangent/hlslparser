@@ -1437,7 +1437,7 @@ unsigned int GLSLGenerator::OutputBufferAccessIndex(HLSLExpression* expression, 
                 LayoutBuffer(field->type, offset);
             }
 
-            return OutputBufferAccessIndex(memberAccess->object, offset + postOffset);
+            return offset + OutputBufferAccessIndex(memberAccess->object, postOffset);
         }
         else
         {
@@ -1456,11 +1456,21 @@ unsigned int GLSLGenerator::OutputBufferAccessIndex(HLSLExpression* expression, 
 
         unsigned int alignedElementSize = (elementSize + 3) & ~3;
 
-        m_writer.Write("%d*(", alignedElementSize / 4);
-        OutputExpression(arrayAccess->index);
-        m_writer.Write(")+");
+        int arrayIndex = 0;
+        if (m_tree->GetExpressionValue(arrayAccess->index, arrayIndex))
+        {
+            unsigned int offset = arrayIndex * alignedElementSize;
 
-        return OutputBufferAccessIndex(arrayAccess->array, postOffset);
+            return offset + OutputBufferAccessIndex(arrayAccess->array, postOffset);
+        }
+        else
+        {
+            m_writer.Write("%d*(", alignedElementSize / 4);
+            OutputExpression(arrayAccess->index);
+            m_writer.Write(")+");
+
+            return OutputBufferAccessIndex(arrayAccess->array, postOffset);
+        }
     }
     else
     {
