@@ -428,8 +428,6 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
     // ACoget-TODO: add a helper function for all the prepended code
     // ACoget-TODO: trim what gets added based on what the shader uses
     m_writer.WriteLine(0, "#include <metal_stdlib>");
-    m_writer.WriteLine(0, "#include <metal_texture>");
-    m_writer.WriteLine(0, "#include <metal_math>");
     m_writer.WriteLine(0, "using namespace metal;");
     m_writer.WriteLine(0, "");
     
