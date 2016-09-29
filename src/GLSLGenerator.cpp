@@ -494,8 +494,9 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         HLSLCastingExpression* castingExpression = static_cast<HLSLCastingExpression*>(expression);
 
         int value;
-
-        if (m_tree->GetExpressionValue(castingExpression->expression, value) && value == 0)
+        if (castingExpression->type.baseType == HLSLBaseType_UserDefined &&
+            m_tree->GetExpressionValue(castingExpression->expression, value) &&
+            value == 0)
         {
             OutputZeroLiteral(castingExpression->type);
         }
