@@ -471,23 +471,16 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         m_writer.Write("(");
     }
 
-    if (expression->nodeType == HLSLNodeType_IdentifierExpression)
+    HLSLBuffer* bufferAccess = (m_flags & Flag_EmulateConstantBuffer) ? GetBufferAccessExpression(expression) : 0;
+
+    if (bufferAccess)
+    {
+        OutputBufferAccessExpression(bufferAccess, expression, 0);
+    }
+    else if (expression->nodeType == HLSLNodeType_IdentifierExpression)
     {
         HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
-        const char* name = identifierExpression->name;
-
-        // Route cbuffer member access through an accessor
-        if (identifierExpression->global && (m_flags & Flag_EmulateConstantBuffer) != 0)
-        {
-            HLSLDeclaration * declaration = m_tree->FindGlobalDeclaration(name);
-
-            if (declaration && declaration->buffer)
-            {
-                m_writer.Write("%s_FakeCB().", declaration->buffer->name);
-            }
-        }
-
-        OutputIdentifier(name);
+        OutputIdentifier(identifierExpression->name);
     }
     else if (expression->nodeType == HLSLNodeType_ConstructorExpression)
     {
@@ -800,7 +793,7 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
             else
             {
                 m_writer.Write("%s((", prefix);
-                    OutputExpression(argument[0], &type0);
+                OutputExpression(argument[0], &type0);
                 m_writer.Write(")%s(", infix);
                 OutputExpression(argument[1], &type1);
                 m_writer.Write("))");
@@ -1142,34 +1135,12 @@ void GLSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
 
     if (m_flags & Flag_EmulateConstantBuffer)
     {
-        // Emit a struct with a getter; count on the optimizer to simplify this
-        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "struct %s_FakeCBType {", buffer->name);
-        HLSLDeclaration* field = buffer->field;
-        while (field != NULL)
-        {
-            m_writer.BeginLine(indent + 1, field->fileName, field->line);
-            OutputDeclaration(field->type, field->name);
-            m_writer.Write(";");
-            m_writer.EndLine();
-            field = (HLSLDeclaration*)field->nextStatement;
-        }
-        m_writer.WriteLine(indent, "};");
-
         unsigned int size = 0;
-        OutputBufferLayout(indent, buffer, size, NULL, 0);
+        LayoutBuffer(buffer, size);
 
         unsigned int uniformSize = (size + 3) / 4;
 
-        m_writer.WriteLine(indent, "uniform vec4 %s[%d];", buffer->name, uniformSize);
-
-        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "%s_FakeCBType %s_FakeCB() {", buffer->name, buffer->name);
-        m_writer.WriteLine(indent + 1, "return %s_FakeCBType(", buffer->name);
-
-        unsigned int offset = 0;
-        OutputBufferLayout(indent, buffer, offset, buffer->name, uniformSize);
-
-        m_writer.WriteLine(indent + 1, ");");
-        m_writer.WriteLine(indent, "}");
+        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "uniform vec4 %s[%d];", buffer->name, uniformSize);
     }
     else
     {
@@ -1195,84 +1166,56 @@ inline void alignForWrite(unsigned int& offset, unsigned int size)
         offset = (offset + 3) & ~3;
 }
 
-void GLSLGenerator::OutputBufferLayout(int indent, HLSLBuffer* buffer, unsigned int& offset, const char* uniform, unsigned int uniformSize)
+void GLSLGenerator::LayoutBuffer(HLSLBuffer* buffer, unsigned int& offset)
 {
-    HLSLDeclaration* field = buffer->field;
-    while (field != NULL)
+    for (HLSLDeclaration* field = buffer->field; field; field = (HLSLDeclaration*)field->nextStatement)
     {
-        OutputBufferLayout(indent, field->type, offset, uniform, uniformSize);
-
-        if (field->nextStatement)
-            m_writer.Write(", ");
-
-        field = (HLSLDeclaration*)field->nextStatement;
+        LayoutBuffer(field->type, offset);
     }
 }
 
-void GLSLGenerator::OutputBufferLayout(int indent, const HLSLType& type, unsigned int& offset, const char* uniform, unsigned int uniformSize)
+void GLSLGenerator::LayoutBuffer(const HLSLType& type, unsigned int& offset)
 {
+    LayoutBufferAlign(type, offset);
+
     if (type.array)
     {
         int arraySize = 0;
         m_tree->GetExpressionValue(type.arraySize, arraySize);
 
-        if (type.baseType == HLSLBaseType_Float4 && offset == 0 && (arraySize == uniformSize || uniformSize == 0))
-        {
-            alignForWrite(offset, 4);
+        unsigned int elementSize = 0;
+        LayoutBufferElement(type, elementSize);
 
-            if (uniform)
-                m_writer.WriteLine(indent + 1, "%s", uniform);
+        unsigned int alignedElementSize = (elementSize + 3) & ~3;
 
-            offset += arraySize * 4;
-        }
-        else
-        {
-            Error("Constant buffer layout is not supported for %s[]", GetTypeName(type));
-        }
+        offset += alignedElementSize * arraySize;
     }
-    else if (type.baseType == HLSLBaseType_Float)
+    else
     {
-        alignForWrite(offset, 1);
+        LayoutBufferElement(type, offset);
+    }
+}
 
-        if (uniform)
-            m_writer.WriteLine(indent + 1, "%s[%d][%d]", uniform, offset / 4, offset % 4);
-
+void GLSLGenerator::LayoutBufferElement(const HLSLType& type, unsigned int& offset)
+{
+    if (type.baseType == HLSLBaseType_Float)
+    {
         offset += 1;
     }
     else if (type.baseType == HLSLBaseType_Float2)
     {
-        alignForWrite(offset, 2);
-
-        if (uniform)
-            m_writer.WriteLine(indent + 1, "%s[%d].%s", uniform, offset / 4, (offset % 4) == 0 ? "xy" : (offset % 4) == 1 ? "yz" : "zw");
-
         offset += 2;
     }
     else if (type.baseType == HLSLBaseType_Float3)
     {
-        alignForWrite(offset, 3);
-
-        if (uniform)
-            m_writer.WriteLine(indent + 1, "%s[%d].%s", uniform, offset / 4, (offset % 4) == 0 ? "xyz" : "yzw");
-
         offset += 3;
     }
     else if (type.baseType == HLSLBaseType_Float4)
     {
-        alignForWrite(offset, 4);
-
-        if (uniform)
-            m_writer.WriteLine(indent + 1, "%s[%d]", uniform, offset / 4);
-
         offset += 4;
     }
     else if (type.baseType == HLSLBaseType_Float4x4)
     {
-        alignForWrite(offset, 4);
-
-        if (uniform)
-            m_writer.WriteLine(indent + 1, "mat4(%s[%d], %s[%d], %s[%d], %s[%d])", uniform, offset / 4, uniform, offset / 4 + 1, uniform, offset / 4 + 2, uniform, offset / 4 + 3);
-
         offset += 16;
     }
     else if (type.baseType == HLSLBaseType_UserDefined)
@@ -1281,19 +1224,10 @@ void GLSLGenerator::OutputBufferLayout(int indent, const HLSLType& type, unsigne
 
         if (st)
         {
-            if (uniform)
-                m_writer.WriteLine(indent + 1, "%s(", st->name);
-
             for (HLSLStructField* field = st->field; field; field = field->nextField)
             {
-                OutputBufferLayout(indent + 2, field->type, offset, uniform, uniformSize);
-
-                if (uniform && field->nextField)
-                    m_writer.WriteLine(indent + 2, ",");
+                LayoutBuffer(field->type, offset);
             }
-
-            if (uniform)
-                m_writer.WriteLine(indent + 1, ")");
         }
         else
         {
@@ -1304,6 +1238,236 @@ void GLSLGenerator::OutputBufferLayout(int indent, const HLSLType& type, unsigne
     {
         Error("Constant buffer layout is not supported for %s", GetTypeName(type));
     }
+}
+
+void GLSLGenerator::LayoutBufferAlign(const HLSLType& type, unsigned int& offset)
+{
+    if (type.array)
+    {
+        alignForWrite(offset, 4);
+    }
+    else if (type.baseType == HLSLBaseType_Float)
+    {
+        alignForWrite(offset, 1);
+    }
+    else if (type.baseType == HLSLBaseType_Float2)
+    {
+        alignForWrite(offset, 2);
+    }
+    else if (type.baseType == HLSLBaseType_Float3)
+    {
+        alignForWrite(offset, 3);
+    }
+    else if (type.baseType == HLSLBaseType_Float4)
+    {
+        alignForWrite(offset, 4);
+    }
+    else if (type.baseType == HLSLBaseType_Float4x4)
+    {
+        alignForWrite(offset, 4);
+    }
+    else if (type.baseType == HLSLBaseType_UserDefined)
+    {
+        alignForWrite(offset, 4);
+    }
+    else
+    {
+        Error("Constant buffer layout is not supported for %s", GetTypeName(type));
+    }
+}
+
+HLSLBuffer* GLSLGenerator::GetBufferAccessExpression(HLSLExpression* expression)
+{
+    if (expression->nodeType == HLSLNodeType_IdentifierExpression)
+    {
+        HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
+
+        if (identifierExpression->global)
+        {
+            HLSLDeclaration * declaration = m_tree->FindGlobalDeclaration(identifierExpression->name);
+
+            if (declaration && declaration->buffer)
+                return declaration->buffer;
+        }
+    }
+    else if (expression->nodeType == HLSLNodeType_MemberAccess)
+    {
+        HLSLMemberAccess* memberAccess = static_cast<HLSLMemberAccess*>(expression);
+
+        if (memberAccess->object->expressionType.baseType == HLSLBaseType_UserDefined)
+            return GetBufferAccessExpression(memberAccess->object);
+    }
+    else if (expression->nodeType == HLSLNodeType_ArrayAccess)
+    {
+        HLSLArrayAccess* arrayAccess = static_cast<HLSLArrayAccess*>(expression);
+
+        if (arrayAccess->array->expressionType.array)
+            return GetBufferAccessExpression(arrayAccess->array);
+    }
+
+    return 0;
+}
+
+void GLSLGenerator::OutputBufferAccessExpression(HLSLBuffer* buffer, HLSLExpression* expression, unsigned int postOffset)
+{
+    const HLSLType& type = expression->expressionType;
+
+    if (type.array)
+    {
+        Error("Constant buffer access is not supported for arrays (use indexing instead)");
+    }
+    else if (type.baseType == HLSLBaseType_Float)
+    {
+        m_writer.Write("%s[", buffer->name);
+        unsigned int index = OutputBufferAccessIndex(expression, postOffset);
+        m_writer.Write("%d].%c", index / 4, "xyzw"[index % 4]);
+    }
+    else if (type.baseType == HLSLBaseType_Float2)
+    {
+        m_writer.Write("%s[", buffer->name);
+        unsigned int index = OutputBufferAccessIndex(expression, postOffset);
+        m_writer.Write("%d].%s", index / 4, index % 4 == 0 ? "xy" : index % 4 == 1 ? "yz" : "zw");
+    }
+    else if (type.baseType == HLSLBaseType_Float3)
+    {
+        m_writer.Write("%s[", buffer->name);
+        unsigned int index = OutputBufferAccessIndex(expression, postOffset);
+        m_writer.Write("%d].%s", index / 4, index % 4 == 0 ? "xyz" : "yzw");
+    }
+    else if (type.baseType == HLSLBaseType_Float4)
+    {
+        m_writer.Write("%s[", buffer->name);
+        unsigned int index = OutputBufferAccessIndex(expression, postOffset);
+        ASSERT(index % 4 == 0);
+        m_writer.Write("%d]", index / 4);
+    }
+    else if (type.baseType == HLSLBaseType_Float4x4)
+    {
+        m_writer.Write("mat4(");
+        for (int i = 0; i < 4; ++i)
+        {
+            m_writer.Write("%s[", buffer->name);
+            unsigned int index = OutputBufferAccessIndex(expression, postOffset + i * 4);
+            ASSERT(index % 4 == 0);
+            m_writer.Write("%d]%c", index / 4, i == 3 ? ')' : ',');
+        }
+    }
+    else if (type.baseType == HLSLBaseType_UserDefined)
+    {
+        HLSLStruct * st = m_tree->FindGlobalStruct(type.typeName);
+
+        if (st)
+        {
+            m_writer.Write("%s(", st->name);
+
+            unsigned int offset = postOffset;
+
+            for (HLSLStructField* field = st->field; field; field = field->nextField)
+            {
+                OutputBufferAccessExpression(buffer, expression, offset);
+
+                if (field->nextField)
+                    m_writer.Write(",");
+
+                LayoutBuffer(field->type, offset);
+            }
+
+            m_writer.Write(")");
+        }
+        else
+        {
+            Error("Unknown type %s", type.typeName);
+        }
+    }
+    else
+    {
+        Error("Constant buffer layout is not supported for %s", GetTypeName(type));
+    }
+}
+
+unsigned int GLSLGenerator::OutputBufferAccessIndex(HLSLExpression* expression, unsigned int postOffset)
+{
+    if (expression->nodeType == HLSLNodeType_IdentifierExpression)
+    {
+        HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
+        ASSERT(identifierExpression->global);
+
+        HLSLDeclaration * declaration = m_tree->FindGlobalDeclaration(identifierExpression->name);
+        ASSERT(declaration);
+
+        HLSLBuffer * buffer = declaration->buffer;
+        ASSERT(buffer);
+
+        unsigned int offset = 0;
+
+        for (HLSLDeclaration* field = buffer->field; field; field = (HLSLDeclaration*)field->nextStatement)
+        {
+            if (field == declaration)
+            {
+                LayoutBufferAlign(field->type, offset);
+                break;
+            }
+
+            LayoutBuffer(field->type, offset);
+        }
+
+        return offset + postOffset;
+    }
+    else if (expression->nodeType == HLSLNodeType_MemberAccess)
+    {
+        HLSLMemberAccess* memberAccess = static_cast<HLSLMemberAccess*>(expression);
+
+        const HLSLType& type = memberAccess->object->expressionType;
+        ASSERT(type.baseType == HLSLBaseType_UserDefined);
+
+        HLSLStruct * st = m_tree->FindGlobalStruct(type.typeName);
+
+        if (st)
+        {
+            unsigned int offset = 0;
+
+            for (HLSLStructField* field = st->field; field; field = field->nextField)
+            {
+                if (field->name == memberAccess->field)
+                {
+                    LayoutBufferAlign(field->type, offset);
+                    break;
+                }
+
+                LayoutBuffer(field->type, offset);
+            }
+
+            return OutputBufferAccessIndex(memberAccess->object, offset + postOffset);
+        }
+        else
+        {
+            Error("Unknown type %s", type.typeName);
+        }
+    }
+    else if (expression->nodeType == HLSLNodeType_ArrayAccess)
+    {
+        HLSLArrayAccess* arrayAccess = static_cast<HLSLArrayAccess*>(expression);
+
+        const HLSLType& type = arrayAccess->array->expressionType;
+        ASSERT(type.array);
+
+        unsigned int elementSize = 0;
+        LayoutBufferElement(type, elementSize);
+
+        unsigned int alignedElementSize = (elementSize + 3) & ~3;
+
+        m_writer.Write("%d*(", alignedElementSize / 4);
+        OutputExpression(arrayAccess->index);
+        m_writer.Write(")+");
+
+        return OutputBufferAccessIndex(arrayAccess->array, postOffset);
+    }
+    else
+    {
+        ASSERT(!"IsBufferAccessExpression should have returned false");
+    }
+
+    return 0;
 }
 
 HLSLFunction* GLSLGenerator::FindFunction(HLSLRoot* root, const char* name)

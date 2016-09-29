@@ -79,9 +79,16 @@ private:
 
     void OutputZeroLiteral(const HLSLType& type);
 
+    void LayoutBuffer(HLSLBuffer* buffer, unsigned int& offset);
+    void LayoutBuffer(const HLSLType& type, unsigned int& offset);
+    void LayoutBufferElement(const HLSLType& type, unsigned int& offset);
+    void LayoutBufferAlign(const HLSLType& type, unsigned int& offset);
+
+    HLSLBuffer* GetBufferAccessExpression(HLSLExpression* expression);
+    void OutputBufferAccessExpression(HLSLBuffer* buffer, HLSLExpression* expression, unsigned int postOffset);
+    unsigned int OutputBufferAccessIndex(HLSLExpression* expression, unsigned int postOffset);
+
     void OutputBuffer(int indent, HLSLBuffer* buffer);
-    void OutputBufferLayout(int indent, HLSLBuffer* buffer, unsigned int& offset, const char* uniform, unsigned int uniformSize);
-    void OutputBufferLayout(int indent, const HLSLType& type, unsigned int& offset, const char* uniform, unsigned int uniformSize);
 
     HLSLFunction* FindFunction(HLSLRoot* root, const char* name);
     HLSLStruct* FindStruct(HLSLRoot* root, const char* name);
