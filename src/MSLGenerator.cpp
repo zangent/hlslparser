@@ -1159,23 +1159,11 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, HLSLExpression* 
     else if (expression->nodeType == HLSLNodeType_CastingExpression)
     {
         HLSLCastingExpression* castingExpression = static_cast<HLSLCastingExpression*>(expression);
-
-        int value;
-        if (castingExpression->type.baseType == HLSLBaseType_UserDefined &&
-            m_tree->GetExpressionValue(castingExpression->expression, value) &&
-            value == 0)
-        {
-            OutputDeclarationType(castingExpression->type);
-            m_writer.Write("()");
-        }
-        else
-        {
-            m_writer.Write("(");
-            OutputDeclarationType(castingExpression->type);
-            m_writer.Write(")(");
-            OutputExpression(castingExpression->expression, castingExpression);
-            m_writer.Write(")");
-        }
+		m_writer.Write("(");
+		OutputDeclarationType(castingExpression->type);
+		m_writer.Write(")(");
+		OutputExpression(castingExpression->expression, castingExpression);
+		m_writer.Write(")");
     }
     else if (expression->nodeType == HLSLNodeType_ConstructorExpression)
     {

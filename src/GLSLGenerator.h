@@ -77,8 +77,6 @@ private:
 
     void OutputSetOutAttribute(const char* semantic, const char* resultName);
 
-    void OutputZeroLiteral(const HLSLType& type);
-
     void LayoutBuffer(HLSLBuffer* buffer, unsigned int& offset);
     void LayoutBuffer(const HLSLType& type, unsigned int& offset);
     void LayoutBufferElement(const HLSLType& type, unsigned int& offset);
