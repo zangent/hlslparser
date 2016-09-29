@@ -167,8 +167,6 @@ MSLGenerator::MSLGenerator()
     m_target                        = Target_VertexShader;
     m_error = false;
 
-    m_per_pass_buffer    = NULL;
-    m_per_item_buffer    = NULL;
     m_firstClassArgument = NULL;
     m_lastClassArgument  = NULL;
 }
@@ -259,18 +257,14 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
                 type.addressSpace = HLSLAddressSpace_Constant;
                 type.typeName = m_tree->AddStringFormat("Uniforms_%s", buffer->name);
 
-                int bufferIndex = -1;
-                if (strcmp(buffer->name, "per_pass") == 0) bufferIndex = bufferOffset + 0;
-                else if (strcmp(buffer->name, "per_item") == 0) bufferIndex = bufferOffset + 1;
-
-                const char * registerName = m_tree->AddStringFormat("buffer(%d)", bufferIndex);
-
-                if (bufferIndex >= 0)
+                if (buffer->registerName && buffer->registerName[0] == 'b')
                 {
+                    int bufferIndex = bufferOffset + atoi(buffer->registerName + 1);
+
+                    const char * registerName = m_tree->AddStringFormat("buffer(%d)", bufferIndex);
+
                     AddClassArgument(new ClassArgument(buffer->name, type, registerName));
                 }
-
-                bufferIndex--;
             }
         }
         
@@ -418,10 +412,6 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
     }
     
     Prepass(tree, target, entryFunction);
-    
-    // ACoget-TODO: replace by prepass
-    m_per_pass_buffer = NULL;
-    m_per_item_buffer = NULL;
     
     // ACoget-TODO: add a helper function for all the prepended code
     // ACoget-TODO: trim what gets added based on what the shader uses
@@ -1020,18 +1010,7 @@ void MSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
     }
     m_writer.WriteLine(indent, "};");
 
-    // Output member reference to buffers.
-    if (String_Equal(buffer->name, "per_pass")) {
-        m_per_pass_buffer = buffer;
-        m_writer.WriteLine(indent, "constant Uniforms_per_pass & per_pass;");
-    }
-    else if (String_Equal(buffer->name, "per_item")) {
-        m_per_item_buffer = buffer;
-        m_writer.WriteLine(indent, "constant Uniforms_per_item & per_item;");
-    }
-    else {
-        ASSERT(0); // General buffers not supported yet.
-    }
+    m_writer.WriteLine(indent, "constant Uniforms_%s & %s;", buffer->name, buffer->name);
 }
     
 void MSLGenerator::OutputFunction(int indent, HLSLFunction* function)
@@ -1049,27 +1028,6 @@ void MSLGenerator::OutputFunction(int indent, HLSLFunction* function)
     OutputStatements(indent + 1, function->statement);
     m_writer.WriteLine(indent, "};");
 }
-
-
-static bool is_in_buffer(HLSLBuffer * buffer, const char * name)
-{
-    if (buffer == NULL)
-    {
-        return false;
-    }
-    
-    HLSLDeclaration* field = buffer->field;
-    while (field != NULL)
-    {
-        if (!field->hidden)
-        {
-            if (strcmp(field->name, name) == 0) return true;
-        }
-        field = (HLSLDeclaration*)field->nextStatement;
-    }
-    return false;
-}
-
 
 // @@ We could be a lot smarter removing parenthesis based on the operator precedence of the parent expression.
 static bool needsParenthesis(HLSLExpression * expression, HLSLExpression * parentExpression) {
@@ -1117,8 +1075,10 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, HLSLExpression* 
         {
             if (identifierExpression->global)
             {
-                if (is_in_buffer(m_per_item_buffer, name)) m_writer.Write("per_item.");
-                else if (is_in_buffer(m_per_pass_buffer, name)) m_writer.Write("per_pass.");
+                HLSLDeclaration * declaration = m_tree->FindGlobalDeclaration(identifierExpression->name);
+
+                if (declaration && declaration->buffer)
+                    m_writer.Write("%s.", declaration->buffer->name);
             }
             m_writer.Write("%s", name);
 

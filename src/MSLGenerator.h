@@ -88,10 +88,6 @@ private:
     Target          m_target;
     
     bool            m_error;
-    
-    // TODO: Temporary hack to access uniforms struct members
-    HLSLBuffer* m_per_pass_buffer;
-    HLSLBuffer* m_per_item_buffer;
 
     ClassArgument * m_firstClassArgument;
     ClassArgument * m_lastClassArgument;
