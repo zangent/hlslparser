@@ -612,16 +612,35 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
         m_writer.WriteLine(0, "}");
     }
     
-    if (FindFunctionCall(entryFunction, "texCUBElod"))
+    if (FindFunctionCall(entryFunction, "texCUBE") ||
+        FindFunctionCall(entryFunction, "texCUBElod") ||
+        FindFunctionCall(entryFunction, "texCUBEbias"))
     {
         m_writer.WriteLine(0, "struct TextureCubeSampler {");
         m_writer.WriteLine(1, "const thread texturecube<float>& t;");
         m_writer.WriteLine(1, "const thread sampler& s;");
         m_writer.WriteLine(1, "TextureCubeSampler(thread const texturecube<float>& t, thread const sampler& s) : t(t), s(s) {};");
         m_writer.WriteLine(0, "};");
-        
+    }
+
+    if (FindFunctionCall(entryFunction, "texCUBE"))
+    {
+        m_writer.WriteLine(0, "inline float4 texCUBE(TextureCubeSampler ts, float3 texCoord) {");
+        m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoord);");
+        m_writer.WriteLine(0, "}");
+    }
+
+    if (FindFunctionCall(entryFunction, "texCUBElod"))
+    {
         m_writer.WriteLine(0, "inline float4 texCUBElod(TextureCubeSampler ts, float4 texCoordMip) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoordMip.xyz, level(texCoordMip.w));");
+        m_writer.WriteLine(0, "}");
+    }
+
+    if (FindFunctionCall(entryFunction, "texCUBEbias"))
+    {
+        m_writer.WriteLine(0, "inline float4 texCUBEbias(TextureCubeSampler ts, float4 texCoordBias) {");
+        m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoordBias.xyz, bias(texCoordBias.w));");
         m_writer.WriteLine(0, "}");
     }
     
@@ -839,7 +858,9 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
         else if (statement->nodeType == HLSLNodeType_Function)
         {
             HLSLFunction* function = static_cast<HLSLFunction*>(statement);
-            OutputFunction(indent, function);
+
+            if (!function->forward)
+                OutputFunction(indent, function);
         }
         else if (statement->nodeType == HLSLNodeType_ExpressionStatement)
         {
