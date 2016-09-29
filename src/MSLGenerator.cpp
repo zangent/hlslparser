@@ -210,61 +210,54 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
     // Hide unused arguments. @@ It would be good to do this in the generator too.
     HideUnusedArguments(entryFunction);
 
-    // Collect textures, in order with names
     HLSLRoot* root = tree->GetRoot();
     HLSLStatement* statement = root->statement;
     ASSERT(m_firstClassArgument == NULL);
 
-    int textureIndex = 0;
-
-    // @@ IC: Hack! LIST BUFFERS IN THE RIGHT order.
-    int bufferOffset = 0;
-    if (target == Target_VertexShader) {
-        bufferOffset = 1; // Index 0 reserved for input vertex buffer.
-    }
-
     HLSLType samplerType(HLSLBaseType_Sampler);
 
+    int nextTextureRegister = 0;
+    int nextBufferRegister = 0;
+
     ClassArgument * currentArg = m_firstClassArgument;
-    while (statement != NULL) {
+    while (statement != NULL)
+    {
         HLSLStatement* nextStatement = statement->nextStatement;
         
-        if (statement->nodeType == HLSLNodeType_Declaration) {
+        if (statement->nodeType == HLSLNodeType_Declaration)
+        {
             HLSLDeclaration* declaration = (HLSLDeclaration*)statement;
             
             if (!declaration->hidden && IsSamplerType(declaration->type))
             {
-                // We just want to list textures in order, no semantic handling is necessary
+                int textureRegister = ParseRegister(declaration->registerName, nextTextureRegister);
+
                 const char * textureName = m_tree->AddStringFormat("%s_texture", declaration->name);
-                const char * textureRegisterName = m_tree->AddStringFormat("texture(%d)", textureIndex);
+                const char * textureRegisterName = m_tree->AddStringFormat("texture(%d)", textureRegister);
                 AddClassArgument(new ClassArgument(textureName, declaration->type, textureRegisterName));
 
                 if (declaration->type.baseType != HLSLBaseType_Sampler2DMS)
                 {
                     const char * samplerName = m_tree->AddStringFormat("%s_sampler", declaration->name);
-                    const char * samplerRegisterName = m_tree->AddStringFormat("sampler(%d)", textureIndex);
+                    const char * samplerRegisterName = m_tree->AddStringFormat("sampler(%d)", textureRegister);
                     AddClassArgument(new ClassArgument(samplerName, samplerType, samplerRegisterName));
                 }
-
-                textureIndex++;
             }
         }
-        else if (statement->nodeType == HLSLNodeType_Buffer) {
+        else if (statement->nodeType == HLSLNodeType_Buffer)
+        {
             HLSLBuffer * buffer = (HLSLBuffer *)statement;
 
-            if (!buffer->hidden) {
+            if (!buffer->hidden)
+            {
                 HLSLType type(HLSLBaseType_UserDefined);
                 type.addressSpace = HLSLAddressSpace_Constant;
                 type.typeName = m_tree->AddStringFormat("Uniforms_%s", buffer->name);
 
-                if (buffer->registerName && buffer->registerName[0] == 'b')
-                {
-                    int bufferIndex = bufferOffset + atoi(buffer->registerName + 1);
+                int bufferRegister = ParseRegister(buffer->registerName, nextBufferRegister);
+                const char * bufferRegisterName = m_tree->AddStringFormat("buffer(%d)", bufferRegister);
 
-                    const char * registerName = m_tree->AddStringFormat("buffer(%d)", bufferIndex);
-
-                    AddClassArgument(new ClassArgument(buffer->name, type, registerName));
-                }
+                AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName));
             }
         }
         
@@ -375,6 +368,25 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
             entryFunction->sv_semantic = translate_output_semantic(target, entryFunction->semantic);
         }
     }
+}
+
+int MSLGenerator::ParseRegister(const char* registerName, int& nextRegister)
+{
+    if (!registerName)
+        return nextRegister++;
+
+    while (*registerName && !isdigit(*registerName))
+        registerName++;
+
+    if (!*registerName)
+        return nextRegister++;
+
+    int result = atoi(registerName);
+
+    if (nextRegister <= result)
+        nextRegister = result + 1;
+
+    return result;
 }
 
 void MSLGenerator::CleanPrepass()

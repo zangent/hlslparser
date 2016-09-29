@@ -76,6 +76,8 @@ private:
     void OutputExpressionList(HLSLExpression* expression);
     void OutputFunctionCallStatement(int indent, HLSLFunctionCall* functionCall);
     void OutputFunctionCall(HLSLFunctionCall* functionCall);
+
+    int ParseRegister(const char* registerName, int& nextRegister);
     
     void Error(const char* format, ...);
 
