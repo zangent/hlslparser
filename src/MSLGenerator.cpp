@@ -479,8 +479,28 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
 
     if (FindFunctionCall(entryFunction, "mul")) {
         // @@ Add all mul variants? Replace by * ?
+        m_writer.WriteLine(0, "inline float2 mul(float2 a, float2x2 m) {");
+        m_writer.WriteLine(1, "return a * m;");
+        m_writer.WriteLine(0, "}");
+
+        m_writer.WriteLine(0, "inline float3 mul(float3 a, float3x3 m) {");
+        m_writer.WriteLine(1, "return a * m;");
+        m_writer.WriteLine(0, "}");
+
         m_writer.WriteLine(0, "inline float4 mul(float4 a, float4x4 m) {");
         m_writer.WriteLine(1, "return a * m;");
+        m_writer.WriteLine(0, "}");
+
+        m_writer.WriteLine(0, "inline float2 mul(float2x2 m, float2 a) {");
+        m_writer.WriteLine(1, "return m * a;");
+        m_writer.WriteLine(0, "}");
+
+        m_writer.WriteLine(0, "inline float3 mul(float3x3 m, float3 a) {");
+        m_writer.WriteLine(1, "return m * a;");
+        m_writer.WriteLine(0, "}");
+
+        m_writer.WriteLine(0, "inline float4 mul(float4x4 m, float4 a) {");
+        m_writer.WriteLine(1, "return m * a;");
         m_writer.WriteLine(0, "}");
 
         m_writer.WriteLine(0, "inline float3 mul(float4 a, float3x4 m) {");
