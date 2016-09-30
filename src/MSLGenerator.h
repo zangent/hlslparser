@@ -68,6 +68,7 @@ private:
     void OutputBuffer(int indent, HLSLBuffer* buffer);
     void OutputFunction(int indent, HLSLFunction* function);
     void OutputExpression(HLSLExpression* expression, HLSLExpression* parentExpression);
+    void OutputCast(const HLSLType& type);
     
     void OutputArguments(HLSLArgument* argument);
     void OutputDeclaration(const HLSLType& type, const char* name, HLSLExpression* assignment, bool isRef = false, bool isConst = false, int alignment = 0);

@@ -442,7 +442,7 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
     // Any special function stubs we need go here
     // That includes special constructors to emulate HLSL not being strict
 
-    if (FindFunctionCall(entryFunction, "mad")) {
+    if (m_tree->NeedsFunction("mad")) {
         m_writer.WriteLine(0, "inline float mad(float a, float b, float c) {");
         m_writer.WriteLine(1, "return a * b + c;");
         m_writer.WriteLine(0, "}");
@@ -457,7 +457,7 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
         m_writer.WriteLine(0, "}");
     }
 
-    if (FindFunctionCall(entryFunction, "max")) {
+    if (m_tree->NeedsFunction("max")) {
         m_writer.WriteLine(0, "inline float max(int a, float b) {");
         m_writer.WriteLine(1, "return max((float)a, b);");
         m_writer.WriteLine(0, "}");
@@ -465,7 +465,7 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
         m_writer.WriteLine(1, "return max(a, (float)b);");
         m_writer.WriteLine(0, "}");
     }
-    if (FindFunctionCall(entryFunction, "min")) {
+    if (m_tree->NeedsFunction("min")) {
         m_writer.WriteLine(0, "inline float min(int a, float b) {");
         m_writer.WriteLine(1, "return min((float)a, b);");
         m_writer.WriteLine(0, "}");
@@ -474,14 +474,14 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
         m_writer.WriteLine(0, "}");
     }
 
-    if (FindFunctionCall(entryFunction, "lerp")) {
+    if (m_tree->NeedsFunction("lerp")) {
         m_writer.WriteLine(0, "template<typename T> inline T mix(T a, T b, int x) {");
         m_writer.WriteLine(1, "return mix(a, b, (float)x);");
         m_writer.WriteLine(0, "}");
         m_writer.WriteLine(0, "#define lerp mix");
     }
 
-    if (FindFunctionCall(entryFunction, "mul")) {
+    if (m_tree->NeedsFunction("mul")) {
         // @@ Add all mul variants? Replace by * ?
         m_writer.WriteLine(0, "inline float2 mul(float2 a, float2x2 m) {");
         m_writer.WriteLine(1, "return a * m;");
@@ -537,125 +537,114 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
     m_writer.WriteLine(1, "    m[0][i] = v.x; m[1][i] = v.y; return v;");
     m_writer.WriteLine(0, "}");
 
+    m_writer.WriteLine(0, "inline float3x3 matrix_ctor(float4x4 m) {");
+    m_writer.WriteLine(1, "    return float3x3(m[0].xyz, m[1].xyz, m[2].xyz);");
+    m_writer.WriteLine(0, "}");
 
-    if (FindFunctionCall(entryFunction, "clip"))
+    if (m_tree->NeedsFunction("clip"))
     {
         m_writer.WriteLine(0, "inline void clip(float x) {");
         m_writer.WriteLine(1, "if (x < 0.0) discard_fragment();");
         m_writer.WriteLine(0, "}");
     }
-    if (FindFunctionCall(entryFunction, "rcp"))
+    if (m_tree->NeedsFunction("rcp"))
     {
         m_writer.WriteLine(0, "inline float rcp(float x) {");
         m_writer.WriteLine(1, "return 1.0f / x;");
         m_writer.WriteLine(0, "}");
     }
 
-    if (FindFunctionCall(entryFunction, "ddx")) m_writer.WriteLine(0, "#define ddx dfdx");
-    if (FindFunctionCall(entryFunction, "ddy")) m_writer.WriteLine(0, "#define ddy dfdy");
-    if (FindFunctionCall(entryFunction, "frac")) m_writer.WriteLine(0, "#define frac fract");
+    if (m_tree->NeedsFunction("ddx")) m_writer.WriteLine(0, "#define ddx dfdx");
+    if (m_tree->NeedsFunction("ddy")) m_writer.WriteLine(0, "#define ddy dfdy");
+    if (m_tree->NeedsFunction("frac")) m_writer.WriteLine(0, "#define frac fract");
     
     //m_writer.WriteLine(0, "#define mad fma");     // @@ This doesn't seem to work.
     
-    if (FindFunctionCall(entryFunction, "tex2D") ||
-        FindFunctionCall(entryFunction, "tex2Dlod") ||
-        FindFunctionCall(entryFunction, "tex2Dgrad") ||
-        FindFunctionCall(entryFunction, "tex2Dbias"))
-    {
-        m_writer.WriteLine(0, "struct Texture2DSampler {");
-        m_writer.WriteLine(1, "const thread texture2d<float>& t;");
-        m_writer.WriteLine(1, "const thread sampler& s;");
-        m_writer.WriteLine(1, "Texture2DSampler(thread const texture2d<float>& t, thread const sampler& s) : t(t), s(s) {};");
-        m_writer.WriteLine(0, "};");
-    }
+    m_writer.WriteLine(0, "struct Texture2DSampler {");
+    m_writer.WriteLine(1, "const thread texture2d<float>& t;");
+    m_writer.WriteLine(1, "const thread sampler& s;");
+    m_writer.WriteLine(1, "Texture2DSampler(thread const texture2d<float>& t, thread const sampler& s) : t(t), s(s) {};");
+    m_writer.WriteLine(0, "};");
 
-    if (FindFunctionCall(entryFunction, "tex2D"))
+    if (m_tree->NeedsFunction("tex2D"))
     {
         m_writer.WriteLine(0, "inline float4 tex2D(Texture2DSampler ts, float2 texCoord) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoord);");
         m_writer.WriteLine(0, "}");
     }
-    if (FindFunctionCall(entryFunction, "tex2Dlod"))
+    if (m_tree->NeedsFunction("tex2Dlod"))
     {
         m_writer.WriteLine(0, "inline float4 tex2Dlod(Texture2DSampler ts, float4 texCoordMip) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoordMip.xy, level(texCoordMip.w));");
         m_writer.WriteLine(0, "}");
     }
-    if (FindFunctionCall(entryFunction, "tex2Dgrad"))
+    if (m_tree->NeedsFunction("tex2Dgrad"))
     {
         m_writer.WriteLine(0, "inline float4 tex2Dgrad(Texture2DSampler ts, float2 texCoord, float2 gradx, float2 grady) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoord.xy, gradient2d(gradx, grady));");
         m_writer.WriteLine(0, "}");
     }
-    if (FindFunctionCall(entryFunction, "tex2Dbias"))
+    if (m_tree->NeedsFunction("tex2Dbias"))
     {
         m_writer.WriteLine(0, "inline float4 tex2Dbias(Texture2DSampler ts, float4 texCoordBias) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoordBias.xy, bias(texCoordBias.w));");
         m_writer.WriteLine(0, "}");
     }
     
-    if (FindFunctionCall(entryFunction, "tex3D") ||
-        FindFunctionCall(entryFunction, "tex3Dlod"))
-    {
-        m_writer.WriteLine(0, "struct Texture3DSampler {");
-        m_writer.WriteLine(1, "const thread texture3d<float>& t;");
-        m_writer.WriteLine(1, "const thread sampler& s;");
-        m_writer.WriteLine(1, "Texture3DSampler(thread const texture3d<float>& t, thread const sampler& s) : t(t), s(s) {};");
-        m_writer.WriteLine(0, "};");
-    }
-    if (FindFunctionCall(entryFunction, "tex3D"))
+    m_writer.WriteLine(0, "struct Texture3DSampler {");
+    m_writer.WriteLine(1, "const thread texture3d<float>& t;");
+    m_writer.WriteLine(1, "const thread sampler& s;");
+    m_writer.WriteLine(1, "Texture3DSampler(thread const texture3d<float>& t, thread const sampler& s) : t(t), s(s) {};");
+    m_writer.WriteLine(0, "};");
+
+    if (m_tree->NeedsFunction("tex3D"))
     {
         m_writer.WriteLine(0, "inline float4 tex3D(Texture3DSampler ts, float3 texCoord) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoord);");
         m_writer.WriteLine(0, "}");
     }
-    if (FindFunctionCall(entryFunction, "tex3Dlod"))
+    if (m_tree->NeedsFunction("tex3Dlod"))
     {
         m_writer.WriteLine(0, "inline float4 tex3Dlod(Texture3DSampler ts, float4 texCoordMip) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoordMip.xyz, level(texCoordMip.w));");
         m_writer.WriteLine(0, "}");
     }
     
-    if (FindFunctionCall(entryFunction, "texCUBE") ||
-        FindFunctionCall(entryFunction, "texCUBElod") ||
-        FindFunctionCall(entryFunction, "texCUBEbias"))
-    {
-        m_writer.WriteLine(0, "struct TextureCubeSampler {");
-        m_writer.WriteLine(1, "const thread texturecube<float>& t;");
-        m_writer.WriteLine(1, "const thread sampler& s;");
-        m_writer.WriteLine(1, "TextureCubeSampler(thread const texturecube<float>& t, thread const sampler& s) : t(t), s(s) {};");
-        m_writer.WriteLine(0, "};");
-    }
+    m_writer.WriteLine(0, "struct TextureCubeSampler {");
+    m_writer.WriteLine(1, "const thread texturecube<float>& t;");
+    m_writer.WriteLine(1, "const thread sampler& s;");
+    m_writer.WriteLine(1, "TextureCubeSampler(thread const texturecube<float>& t, thread const sampler& s) : t(t), s(s) {};");
+    m_writer.WriteLine(0, "};");
 
-    if (FindFunctionCall(entryFunction, "texCUBE"))
+    if (m_tree->NeedsFunction("texCUBE"))
     {
         m_writer.WriteLine(0, "inline float4 texCUBE(TextureCubeSampler ts, float3 texCoord) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoord);");
         m_writer.WriteLine(0, "}");
     }
 
-    if (FindFunctionCall(entryFunction, "texCUBElod"))
+    if (m_tree->NeedsFunction("texCUBElod"))
     {
         m_writer.WriteLine(0, "inline float4 texCUBElod(TextureCubeSampler ts, float4 texCoordMip) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoordMip.xyz, level(texCoordMip.w));");
         m_writer.WriteLine(0, "}");
     }
 
-    if (FindFunctionCall(entryFunction, "texCUBEbias"))
+    if (m_tree->NeedsFunction("texCUBEbias"))
     {
         m_writer.WriteLine(0, "inline float4 texCUBEbias(TextureCubeSampler ts, float4 texCoordBias) {");
         m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoordBias.xyz, bias(texCoordBias.w));");
         m_writer.WriteLine(0, "}");
     }
     
-    if (FindFunctionCall(entryFunction, "tex2Dcmp"))
-    {
-        m_writer.WriteLine(0, "struct Texture2DShadowSampler {");
-        m_writer.WriteLine(1, "const thread depth2d<float>& t;");
-        m_writer.WriteLine(1, "const thread sampler& s;");
-        m_writer.WriteLine(1, "Texture2DShadowSampler(thread const depth2d<float>& t, thread const sampler& s) : t(t), s(s) {};");
-        m_writer.WriteLine(0, "};");
+    m_writer.WriteLine(0, "struct Texture2DShadowSampler {");
+    m_writer.WriteLine(1, "const thread depth2d<float>& t;");
+    m_writer.WriteLine(1, "const thread sampler& s;");
+    m_writer.WriteLine(1, "Texture2DShadowSampler(thread const depth2d<float>& t, thread const sampler& s) : t(t), s(s) {};");
+    m_writer.WriteLine(0, "};");
         
+    if (m_tree->NeedsFunction("tex2Dcmp"))
+    {
         m_writer.WriteLine(0, "inline float4 tex2Dcmp(Texture2DShadowSampler ts, float4 texCoordCompare) {");
         if (flags & Flags_ConstShadowSampler) {
             // iOS Metal requires that the sampler in sample_compare is a compile-time constant
@@ -667,7 +656,7 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
         m_writer.WriteLine(0, "}");
     }
     
-    if (FindFunctionCall(entryFunction, "tex2DMSfetch"))
+    if (m_tree->NeedsFunction("tex2DMSfetch"))
     {
         m_writer.WriteLine(0, "inline float4 tex2DMSfetch(texture2d_ms<float> t, uint2 texCoord, uint sample) {");
         m_writer.WriteLine(1, "return t.read(texCoord, sample);");
@@ -1165,11 +1154,10 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, HLSLExpression* 
     else if (expression->nodeType == HLSLNodeType_CastingExpression)
     {
         HLSLCastingExpression* castingExpression = static_cast<HLSLCastingExpression*>(expression);
-		m_writer.Write("(");
-		OutputDeclarationType(castingExpression->type);
-		m_writer.Write(")(");
-		OutputExpression(castingExpression->expression, castingExpression);
-		m_writer.Write(")");
+        OutputCast(castingExpression->type);
+        m_writer.Write("(");
+        OutputExpression(castingExpression->expression, castingExpression);
+        m_writer.Write(")");
     }
     else if (expression->nodeType == HLSLNodeType_ConstructorExpression)
     {
@@ -1341,6 +1329,20 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, HLSLExpression* 
     else
     {
         m_writer.Write("<unknown expression>");
+    }
+}
+
+void MSLGenerator::OutputCast(const HLSLType& type)
+{
+    if (type.baseType == HLSLBaseType_Float3x3)
+    {
+        m_writer.Write("matrix_ctor");
+    }
+    else
+    {
+        m_writer.Write("(");
+        OutputDeclarationType(type);
+        m_writer.Write(")");
     }
 }
  
