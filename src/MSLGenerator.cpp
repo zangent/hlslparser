@@ -116,14 +116,17 @@ static const char * translate_input_semantic(MSLGenerator::Target target, const 
         if (target == MSLGenerator::Target_VertexShader)
         {
             if (is_semantic(semantic, "POSITION", 0)) return "attribute(0)";
-            if (is_semantic(semantic, "TEXCOORD", 0)) return "attribute(1)";
-            if (is_semantic(semantic, "TEXCOORD", 1)) return "attribute(2)";
-            if (is_semantic(semantic, "NORMAL", 0)) return "attribute(3)";
-            if (is_semantic(semantic, "TANGENT", 0)) return "attribute(4)";
-            if (is_semantic(semantic, "COLOR", 0)) return "attribute(5)";
-            if (is_semantic(semantic, "COLOR", 1)) return "attribute(6)";
-            if (is_semantic(semantic, "BLENDINDICES", 0)) return "attribute(7)";
-            if (is_semantic(semantic, "BLENDWEIGHT", 0)) return "attribute(8)";
+            if (is_semantic(semantic, "NORMAL", 0)) return "attribute(1)";
+            if (is_semantic(semantic, "COLOR", 0)) return "attribute(2)";
+            if (is_semantic(semantic, "COLOR", 1)) return "attribute(3)";
+            if (is_semantic(semantic, "TEXCOORD", 0)) return "attribute(4)";
+            if (is_semantic(semantic, "TEXCOORD", 1)) return "attribute(5)";
+            if (is_semantic(semantic, "TEXCOORD", 2)) return "attribute(6)";
+            if (is_semantic(semantic, "TEXCOORD", 3)) return "attribute(7)";
+            if (is_semantic(semantic, "TEXCOORD", 4)) return "attribute(8)";
+            if (is_semantic(semantic, "TEXCOORD", 5)) return "attribute(9)";
+            if (is_semantic(semantic, "TEXCOORD", 6)) return "attribute(10)";
+            if (is_semantic(semantic, "TEXCOORD", 7)) return "attribute(11)";
             if (is_semantic(semantic, "INSTANCE_ID")) return "instance_id";
             if (is_semantic(semantic, "VERTEX_ID")) return "vertex_id";
         }
@@ -145,9 +148,12 @@ static const char * translate_output_semantic(MSLGenerator::Target target, const
         if (target == MSLGenerator::Target_VertexShader)
         {
             if (is_semantic(semantic, "POSITION", 0)) return "position";
+            if (is_semantic(semantic, "SV_Position", 0)) return "position";
         }
         else if (target == MSLGenerator::Target_FragmentShader)
         {
+            if (is_semantic(semantic, "SV_Target", 0)) return "color(0)";
+            if (is_semantic(semantic, "SV_Target", 1)) return "color(1)";
             if (is_semantic(semantic, "COLOR", 0)) return "color(0)";
             if (is_semantic(semantic, "COLOR", 1)) return "color(1)";
             if (is_semantic(semantic, "DEPTH")) return "depth(any)";
