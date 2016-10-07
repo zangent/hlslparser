@@ -29,7 +29,8 @@ public:
     
     enum Flags
     {
-        Flags_ConstShadowSampler = 0x1
+        Flag_ConstShadowSampler = 1 << 0,
+        Flag_PackMatrixRowMajor = 1 << 1,
     };
 
     MSLGenerator();

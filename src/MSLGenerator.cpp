@@ -222,6 +222,9 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 
     HLSLType samplerType(HLSLBaseType_Sampler);
 
+    // Reserve buffer 0 for implicit vertex buffer
+    int bufferRegisterOffset = (m_target == Target_VertexShader) ? 1 : 0;
+
     int nextTextureRegister = 0;
     int nextBufferRegister = 0;
 
@@ -261,7 +264,7 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
                 type.typeName = m_tree->AddStringFormat("Uniforms_%s", buffer->name);
 
                 int bufferRegister = ParseRegister(buffer->registerName, nextBufferRegister);
-                const char * bufferRegisterName = m_tree->AddStringFormat("buffer(%d)", bufferRegister);
+                const char * bufferRegisterName = m_tree->AddStringFormat("buffer(%d)", bufferRegister + bufferRegisterOffset);
 
                 AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName));
             }
@@ -482,33 +485,32 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
     }
 
     if (m_tree->NeedsFunction("mul")) {
+        const char* am = (flags & Flag_PackMatrixRowMajor) ? "m * a" : "a * m";
+        const char* ma = (flags & Flag_PackMatrixRowMajor) ? "a * m" : "m * a";
+
         // @@ Add all mul variants? Replace by * ?
         m_writer.WriteLine(0, "inline float2 mul(float2 a, float2x2 m) {");
-        m_writer.WriteLine(1, "return a * m;");
+        m_writer.WriteLine(1, "return %s;", am);
         m_writer.WriteLine(0, "}");
 
         m_writer.WriteLine(0, "inline float3 mul(float3 a, float3x3 m) {");
-        m_writer.WriteLine(1, "return a * m;");
+        m_writer.WriteLine(1, "return %s;", am);
         m_writer.WriteLine(0, "}");
 
         m_writer.WriteLine(0, "inline float4 mul(float4 a, float4x4 m) {");
-        m_writer.WriteLine(1, "return a * m;");
+        m_writer.WriteLine(1, "return %s;", am);
         m_writer.WriteLine(0, "}");
 
         m_writer.WriteLine(0, "inline float2 mul(float2x2 m, float2 a) {");
-        m_writer.WriteLine(1, "return m * a;");
+        m_writer.WriteLine(1, "return %s;", ma);
         m_writer.WriteLine(0, "}");
 
         m_writer.WriteLine(0, "inline float3 mul(float3x3 m, float3 a) {");
-        m_writer.WriteLine(1, "return m * a;");
+        m_writer.WriteLine(1, "return %s;", ma);
         m_writer.WriteLine(0, "}");
 
         m_writer.WriteLine(0, "inline float4 mul(float4x4 m, float4 a) {");
-        m_writer.WriteLine(1, "return m * a;");
-        m_writer.WriteLine(0, "}");
-
-        m_writer.WriteLine(0, "inline float3 mul(float4 a, float3x4 m) {");
-        m_writer.WriteLine(1, "return a * m;");
+        m_writer.WriteLine(1, "return %s;", ma);
         m_writer.WriteLine(0, "}");
     }
 
@@ -646,7 +648,8 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
     if (m_tree->NeedsFunction("tex2Dcmp"))
     {
         m_writer.WriteLine(0, "inline float4 tex2Dcmp(Texture2DShadowSampler ts, float4 texCoordCompare) {");
-        if (flags & Flags_ConstShadowSampler) {
+        if (flags & Flag_ConstShadowSampler)
+        {
             // iOS Metal requires that the sampler in sample_compare is a compile-time constant
             m_writer.WriteLine(1, "constexpr sampler shadow_constant_sampler(mip_filter::none, min_filter::linear, mag_filter::linear, address::clamp_to_edge, compare_func::less);");
             m_writer.WriteLine(1, "return ts.t.sample_compare(shadow_constant_sampler, texCoordCompare.xy, texCoordCompare.z);");
