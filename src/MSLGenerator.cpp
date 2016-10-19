@@ -149,6 +149,7 @@ static const char * translate_output_semantic(MSLGenerator::Target target, const
         {
             if (is_semantic(semantic, "POSITION", 0)) return "position";
             if (is_semantic(semantic, "SV_Position", 0)) return "position";
+            if (is_semantic(semantic, "PSIZE", 0)) return "point_size";
         }
         else if (target == MSLGenerator::Target_FragmentShader)
         {
