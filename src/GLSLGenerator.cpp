@@ -492,10 +492,10 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
     else if (expression->nodeType == HLSLNodeType_CastingExpression)
     {
         HLSLCastingExpression* castingExpression = static_cast<HLSLCastingExpression*>(expression);
-		OutputCast(castingExpression->type);
-		m_writer.Write("(");
-		OutputExpression(castingExpression->expression);
-		m_writer.Write(")");
+        OutputCast(castingExpression->type);
+        m_writer.Write("(");
+        OutputExpression(castingExpression->expression);
+        m_writer.Write(")");
     }
     else if (expression->nodeType == HLSLNodeType_LiteralExpression)
     {

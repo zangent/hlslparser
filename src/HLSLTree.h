@@ -271,7 +271,7 @@ struct HLSLType
         typeName    = NULL;
         array       = false;
         arraySize   = NULL;
-        flags  = 0;
+        flags       = 0;
         addressSpace = HLSLAddressSpace_Undefined;
     }
     HLSLBaseType        baseType;
@@ -382,14 +382,14 @@ struct HLSLStructField : public HLSLNode
         semantic        = NULL;
         sv_semantic     = NULL;
         nextField       = NULL;
-		hidden			= false;
+        hidden          = false;
     }
     const char*         name;
     HLSLType            type;
     const char*         semantic;
     const char*         sv_semantic;
     HLSLStructField*    nextField;      // Next field in the structure.
-	bool				hidden;
+    bool                hidden;
 };
 
 /** A cbuffer or tbuffer declaration. */

@@ -1103,16 +1103,16 @@ void SortTree(HLSLTree * tree)
             lastStruct = statement;
         }
         else if (statement->nodeType == HLSLNodeType_Declaration || statement->nodeType == HLSLNodeType_Buffer) {
-			if (statement->nodeType == HLSLNodeType_Declaration && (((HLSLDeclaration *)statement)->type.flags & HLSLTypeFlag_Const)) {
-				if (constDeclarations == NULL) constDeclarations = statement;
-				if (lastConstDeclaration != NULL) lastConstDeclaration->nextStatement = statement;
-				lastConstDeclaration = statement;
-			}
-			else {
-				if (declarations == NULL) declarations = statement;
-				if (lastDeclaration != NULL) lastDeclaration->nextStatement = statement;
-				lastDeclaration = statement;
-			}
+            if (statement->nodeType == HLSLNodeType_Declaration && (((HLSLDeclaration *)statement)->type.flags & HLSLTypeFlag_Const)) {
+                if (constDeclarations == NULL) constDeclarations = statement;
+                if (lastConstDeclaration != NULL) lastConstDeclaration->nextStatement = statement;
+                lastConstDeclaration = statement;
+            }
+            else {
+                if (declarations == NULL) declarations = statement;
+                if (lastDeclaration != NULL) lastDeclaration->nextStatement = statement;
+                lastDeclaration = statement;
+            }
         }
         else if (statement->nodeType == HLSLNodeType_Function) {
             if (functions == NULL) functions = statement;
@@ -1219,11 +1219,11 @@ void GroupParameters(HLSLTree * tree)
         {
             HLSLDeclaration* declaration = (HLSLDeclaration*)statement;
 
-			// We insert buffers after the last const declaration.
-			if ((declaration->type.flags & HLSLTypeFlag_Const) != 0)
-			{
-				statementBeforeBuffers = statement;
-			}
+            // We insert buffers after the last const declaration.
+            if ((declaration->type.flags & HLSLTypeFlag_Const) != 0)
+            {
+                statementBeforeBuffers = statement;
+            }
 
             // Do not move samplers or static/const parameters.
             if ((declaration->type.flags & (HLSLTypeFlag_Static|HLSLTypeFlag_Const)) == 0)

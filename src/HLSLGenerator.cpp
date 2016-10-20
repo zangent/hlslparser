@@ -871,10 +871,10 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 
             OutputArguments(function->argument);
 
-			const char * semantic = function->sv_semantic ? function->sv_semantic : function->semantic;
+            const char * semantic = function->sv_semantic ? function->sv_semantic : function->semantic;
             if (semantic != NULL)
             {
-				m_writer.Write(") : %s {", semantic);
+                m_writer.Write(") : %s {", semantic);
             }
             else
             {
