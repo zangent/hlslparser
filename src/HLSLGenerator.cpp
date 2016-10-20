@@ -124,7 +124,7 @@ static const char * TranslateSemantic(const char* semantic, bool output, HLSLGen
     {
         if (output) 
         {
-            if (String_Equal("POSITION", semantic))   return "SV_Position";
+            if (String_Equal("POSITION", semantic))     return "SV_Position";
         }
         else {
             if (String_Equal("INSTANCE_ID", semantic))  return "SV_InstanceID";
