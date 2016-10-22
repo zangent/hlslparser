@@ -18,9 +18,7 @@ struct HLSLStruct;
  */
 class MSLGenerator
 {
-
 public:
-
     enum Target
     {
         Target_VertexShader,
@@ -33,9 +31,21 @@ public:
         Flag_PackMatrixRowMajor = 1 << 1,
     };
 
+    struct Options
+    {
+        unsigned int flags;
+        unsigned int bufferRegisterOffset;
+
+        Options()
+        {
+            flags = 0;
+            bufferRegisterOffset = 0;
+        }
+    };
+
     MSLGenerator();
     
-    bool Generate(HLSLTree* tree, Target target, const char* entryName, int flags = 0);
+    bool Generate(HLSLTree* tree, Target target, const char* entryName, const Options& options = Options());
     const char* GetResult() const;
 
 private:
@@ -95,6 +105,8 @@ private:
 
     ClassArgument * m_firstClassArgument;
     ClassArgument * m_lastClassArgument;
+
+    Options         m_options;
 };
 
 } // M4
