@@ -133,7 +133,7 @@ int main( int argc, char* argv[] )
 	// Generate output
 	if (language == Language_GLSL)
 	{
-		GLSLGenerator generator( &allocator );
+		GLSLGenerator generator;
 		if (!generator.Generate( &tree, GLSLGenerator::Target(target), GLSLGenerator::Version_140, entryName ))
 		{
 			Log_Error( "Translation failed, aborting\n" );
@@ -144,7 +144,7 @@ int main( int argc, char* argv[] )
 	}
 	else if (language == Language_HLSL)
 	{
-		HLSLGenerator generator( &allocator );
+		HLSLGenerator generator;
 		if (!generator.Generate( &tree, HLSLGenerator::Target(target), entryName, language == Language_LegacyHLSL ))
 		{
 			Log_Error( "Translation failed, aborting\n" );

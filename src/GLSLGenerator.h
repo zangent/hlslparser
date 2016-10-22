@@ -54,7 +54,7 @@ public:
         }
     };
 
-    explicit GLSLGenerator(Allocator* allocator);
+    GLSLGenerator();
     
     bool Generate(HLSLTree* tree, Target target, Version versiom, const char* entryName, const Options& options = Options());
     const char* GetResult() const;

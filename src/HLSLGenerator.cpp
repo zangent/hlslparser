@@ -82,7 +82,7 @@ static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* 
     return numArguments;
 }
 
-HLSLGenerator::HLSLGenerator(Allocator* allocator)
+HLSLGenerator::HLSLGenerator()
 {
     m_tree                          = NULL;
     m_entryName                     = NULL;
