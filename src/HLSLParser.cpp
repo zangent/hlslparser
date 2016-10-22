@@ -3496,7 +3496,6 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 {
     const HLSLFunction* matchedFunction     = NULL;
 
-    int  numArguments           = functionCall->numArguments;
     int  numMatchedOverloads    = 0;
     bool nameMatches            = false;
 

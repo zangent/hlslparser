@@ -226,11 +226,8 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
     int nextTextureRegister = 0;
     int nextBufferRegister = 0;
 
-    ClassArgument * currentArg = m_firstClassArgument;
     while (statement != NULL)
     {
-        HLSLStatement* nextStatement = statement->nextStatement;
-        
         if (statement->nodeType == HLSLNodeType_Declaration)
         {
             HLSLDeclaration* declaration = (HLSLDeclaration*)statement;
