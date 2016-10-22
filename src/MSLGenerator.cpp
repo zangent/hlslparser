@@ -432,6 +432,11 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
         m_writer.WriteLine(0, "inline float4 mul(float4x4 m, float4 a) {");
         m_writer.WriteLine(1, "return %s;", ma);
         m_writer.WriteLine(0, "}");
+
+        // TODO: Support PackMatrixRowMajor for float3x4/float4x3
+        m_writer.WriteLine(0, "inline float3 mul(float4 a, float3x4 m) {");
+        m_writer.WriteLine(1, "return a * m;");
+        m_writer.WriteLine(0, "}");
     }
 
     // @@ How do we know if these will be needed? We could write these after parsing the whole file and prepend them.
