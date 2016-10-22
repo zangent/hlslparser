@@ -42,9 +42,21 @@ public:
         Flag_LowerMatrixMultiplication = 1 << 3,
     };
 
+    struct Options
+    {
+        unsigned int flags;
+        const char* constantBufferPrefix;
+
+        Options()
+        {
+            flags = 0;
+            constantBufferPrefix = "";
+        }
+    };
+
     explicit GLSLGenerator(Allocator* allocator);
     
-    bool Generate(HLSLTree* tree, Target target, Version versiom, const char* entryName, unsigned int flags = 0);
+    bool Generate(HLSLTree* tree, Target target, Version versiom, const char* entryName, const Options& options = Options());
     const char* GetResult() const;
 
 private:
@@ -116,7 +128,7 @@ private:
     Target              m_target;
     Version             m_version;
     bool                m_versionLegacy;
-    unsigned int        m_flags;
+    Options             m_options;
 
     bool                m_outputPosition;
     int                 m_outputTargets;

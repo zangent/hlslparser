@@ -109,7 +109,6 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_target                    = Target_VertexShader;
     m_version                   = Version_140;
     m_versionLegacy             = false;
-    m_flags                     = 0;
     m_inAttribPrefix            = NULL;
     m_outAttribPrefix           = NULL;
     m_error                     = false;
@@ -131,7 +130,7 @@ GLSLGenerator::GLSLGenerator(Allocator* allocator) :
     m_outputTargets             = 0;
 }
 
-bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, const char* entryName, unsigned int flags)
+bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, const char* entryName, const Options& options)
 {
 
     m_tree      = tree;
@@ -139,7 +138,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
     m_target    = target;
     m_version   = version;
     m_versionLegacy = (version == Version_110 || version == Version_100_ES);
-    m_flags     = flags;
+    m_options   = options;
 
     ChooseUniqueName("matrix_row", m_matrixRowFunction, sizeof(m_matrixRowFunction));
     ChooseUniqueName("matrix_ctor", m_matrixCtorFunction, sizeof(m_matrixCtorFunction));
@@ -231,7 +230,7 @@ bool GLSLGenerator::Generate(HLSLTree* tree, Target target, Version version, con
 
     // Output the special functions used for matrix multiplication lowering
     // They make sure glsl-optimizer can fold expressions better
-    if (m_tree->NeedsFunction("mul") && (m_flags & Flag_LowerMatrixMultiplication))
+    if (m_tree->NeedsFunction("mul") && (m_options.flags & Flag_LowerMatrixMultiplication))
     {
         m_writer.WriteLine(0, "vec2 %s(mat2 m, vec2 v) { return m[0] * v.x + m[1] * v.y; }", m_matrixMulFunction);
         m_writer.WriteLine(0, "vec2 %s(vec2 v, mat2 m) { return vec2(dot(m[0], v), dot(m[1], v)); }", m_matrixMulFunction);
@@ -471,7 +470,7 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
         m_writer.Write("(");
     }
 
-    HLSLBuffer* bufferAccess = (m_flags & Flag_EmulateConstantBuffer) ? GetBufferAccessExpression(expression) : 0;
+    HLSLBuffer* bufferAccess = (m_options.flags & Flag_EmulateConstantBuffer) ? GetBufferAccessExpression(expression) : 0;
 
     if (bufferAccess)
     {
@@ -769,10 +768,10 @@ void GLSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType*
             const HLSLType& type0 = functionCall->function->argument->type;
             const HLSLType& type1 = functionCall->function->argument->nextArgument->type;
 
-            const char* prefix = (m_flags & Flag_LowerMatrixMultiplication) ? m_matrixMulFunction : "";
-            const char* infix = (m_flags & Flag_LowerMatrixMultiplication) ? "," : "*";
+            const char* prefix = (m_options.flags & Flag_LowerMatrixMultiplication) ? m_matrixMulFunction : "";
+            const char* infix = (m_options.flags & Flag_LowerMatrixMultiplication) ? "," : "*";
 
-            if (m_flags & Flag_PackMatrixRowMajor)
+            if (m_options.flags & Flag_PackMatrixRowMajor)
             {
                 m_writer.Write("%s((", prefix);
                 OutputExpression(argument[1], &type1);
@@ -1123,18 +1122,18 @@ void GLSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
     if (buffer->field == NULL)
         return;
 
-    if (m_flags & Flag_EmulateConstantBuffer)
+    if (m_options.flags & Flag_EmulateConstantBuffer)
     {
         unsigned int size = 0;
         LayoutBuffer(buffer, size);
 
         unsigned int uniformSize = (size + 3) / 4;
 
-        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "uniform vec4 %s[%d];", buffer->name, uniformSize);
+        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "uniform vec4 %s%s[%d];", m_options.constantBufferPrefix, buffer->name, uniformSize);
     }
     else
     {
-        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "layout (std140) uniform %s {", buffer->name);
+        m_writer.WriteLineTagged(indent, buffer->fileName, buffer->line, "layout (std140) uniform %s%s {", m_options.constantBufferPrefix, buffer->name);
         HLSLDeclaration* field = buffer->field;
         while (field != NULL)
         {
@@ -1308,25 +1307,25 @@ void GLSLGenerator::OutputBufferAccessExpression(HLSLBuffer* buffer, HLSLExpress
     }
     else if (type.baseType == HLSLBaseType_Float)
     {
-        m_writer.Write("%s[", buffer->name);
+        m_writer.Write("%s%s[", m_options.constantBufferPrefix, buffer->name);
         unsigned int index = OutputBufferAccessIndex(expression, postOffset);
         m_writer.Write("%d].%c", index / 4, "xyzw"[index % 4]);
     }
     else if (type.baseType == HLSLBaseType_Float2)
     {
-        m_writer.Write("%s[", buffer->name);
+        m_writer.Write("%s%s[", m_options.constantBufferPrefix, buffer->name);
         unsigned int index = OutputBufferAccessIndex(expression, postOffset);
         m_writer.Write("%d].%s", index / 4, index % 4 == 0 ? "xy" : index % 4 == 1 ? "yz" : "zw");
     }
     else if (type.baseType == HLSLBaseType_Float3)
     {
-        m_writer.Write("%s[", buffer->name);
+        m_writer.Write("%s%s[", m_options.constantBufferPrefix, buffer->name);
         unsigned int index = OutputBufferAccessIndex(expression, postOffset);
         m_writer.Write("%d].%s", index / 4, index % 4 == 0 ? "xyz" : "yzw");
     }
     else if (type.baseType == HLSLBaseType_Float4)
     {
-        m_writer.Write("%s[", buffer->name);
+        m_writer.Write("%s%s[", m_options.constantBufferPrefix, buffer->name);
         unsigned int index = OutputBufferAccessIndex(expression, postOffset);
         ASSERT(index % 4 == 0);
         m_writer.Write("%d]", index / 4);
@@ -1336,7 +1335,7 @@ void GLSLGenerator::OutputBufferAccessExpression(HLSLBuffer* buffer, HLSLExpress
         m_writer.Write("mat4(");
         for (int i = 0; i < 4; ++i)
         {
-            m_writer.Write("%s[", buffer->name);
+            m_writer.Write("%s%s[", m_options.constantBufferPrefix, buffer->name);
             unsigned int index = OutputBufferAccessIndex(expression, postOffset + i * 4);
             ASSERT(index % 4 == 0);
             m_writer.Write("%d]%c", index / 4, i == 3 ? ')' : ',');
@@ -1584,7 +1583,7 @@ void GLSLGenerator::OutputSetOutAttribute(const char* semantic, const char* resu
     {
         if (String_Equal(builtInSemantic, "gl_Position"))
         {
-            if (m_flags & Flag_FlipPositionOutput)
+            if (m_options.flags & Flag_FlipPositionOutput)
             {
                 // Mirror the y-coordinate when we're outputing from
                 // the vertex shader so that we match the D3D texture
