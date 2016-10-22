@@ -4,8 +4,6 @@
 #include "CodeWriter.h"
 #include "HLSLTree.h"
 
-struct Parameter_Table;
-
 namespace M4
 {
 
@@ -35,6 +33,7 @@ public:
     {
         unsigned int flags;
         unsigned int bufferRegisterOffset;
+        int (*attributeCallback)(const char* name, unsigned int index);
 
         Options()
         {
@@ -44,7 +43,7 @@ public:
     };
 
     MSLGenerator();
-    
+
     bool Generate(HLSLTree* tree, Target target, const char* entryName, const Options& options = Options());
     const char* GetResult() const;
 
@@ -90,7 +89,10 @@ private:
     void OutputFunctionCall(HLSLFunctionCall* functionCall);
 
     int ParseRegister(const char* registerName, int& nextRegister);
-    
+
+    const char* TranslateInputSemantic(const char* semantic);
+    const char* TranslateOutputSemantic(const char* semantic);
+
     void Error(const char* format, ...);
 
 private:
@@ -100,13 +102,12 @@ private:
     HLSLTree*       m_tree;
     const char*     m_entryName;
     Target          m_target;
-    
+    Options         m_options;
+
     bool            m_error;
 
     ClassArgument * m_firstClassArgument;
     ClassArgument * m_lastClassArgument;
-
-    Options         m_options;
 };
 
 } // M4

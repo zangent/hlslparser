@@ -80,92 +80,16 @@ static const char* GetTypeName(const HLSLType& type)
     }
 }
 
-static bool is_semantic(const char * semantic, const char * name, int index)
+static void ParseSemantic(const char* semantic, unsigned int* outputLength, unsigned int* outputIndex)
 {
-    const char * s = semantic;
-    size_t n = strlen(name);
+    const char* semanticIndex = semantic;
 
-    if (strncmp(s, name, n) != 0)
-    {
-        // Name doesn't match.
-        return false;
-    }
-    s += n;
+    while (*semanticIndex && !isdigit(*semanticIndex))
+        semanticIndex++;
 
-    if (s[0] - '0' == index) {
-        s++;
-    }
-    else if (index != 0)
-    {
-        // Index doesn't match.
-        return false;
-    }
-
-    // EOS doesn't match.
-    return s[0] == '\0';
+    *outputLength = semanticIndex - semantic;
+    *outputIndex = atoi(semanticIndex);
 }
-static bool is_semantic(const char * semantic, const char * name)
-{
-    return strcmp(semantic, name) == 0;
-}
-
-static const char * translate_input_semantic(MSLGenerator::Target target, const char * semantic)
-{
-    if (semantic != NULL)
-    {
-        if (target == MSLGenerator::Target_VertexShader)
-        {
-            if (is_semantic(semantic, "POSITION", 0)) return "attribute(0)";
-            if (is_semantic(semantic, "NORMAL", 0)) return "attribute(1)";
-            if (is_semantic(semantic, "COLOR", 0)) return "attribute(2)";
-            if (is_semantic(semantic, "COLOR", 1)) return "attribute(3)";
-            if (is_semantic(semantic, "TEXCOORD", 0)) return "attribute(4)";
-            if (is_semantic(semantic, "TEXCOORD", 1)) return "attribute(5)";
-            if (is_semantic(semantic, "TEXCOORD", 2)) return "attribute(6)";
-            if (is_semantic(semantic, "TEXCOORD", 3)) return "attribute(7)";
-            if (is_semantic(semantic, "TEXCOORD", 4)) return "attribute(8)";
-            if (is_semantic(semantic, "TEXCOORD", 5)) return "attribute(9)";
-            if (is_semantic(semantic, "TEXCOORD", 6)) return "attribute(10)";
-            if (is_semantic(semantic, "TEXCOORD", 7)) return "attribute(11)";
-            if (is_semantic(semantic, "INSTANCE_ID")) return "instance_id";
-            if (is_semantic(semantic, "VERTEX_ID")) return "vertex_id";
-        }
-        else if (target == MSLGenerator::Target_FragmentShader)
-        {
-            if (is_semantic(semantic, "POSITION", 0)) return "position";
-            //if (is_semantic(semantic, "VPOS")) return "position";
-            if (is_semantic(semantic, "VFACE")) return "front_facing";
-            //if (is_semantic(semantic, "COLOR", 0)) return "color(0)";      // For programmable blending.
-        }
-    }
-    return NULL;
-}
-
-static const char * translate_output_semantic(MSLGenerator::Target target, const char * semantic)
-{
-    if (semantic != NULL)
-    {
-        if (target == MSLGenerator::Target_VertexShader)
-        {
-            if (is_semantic(semantic, "POSITION", 0)) return "position";
-            if (is_semantic(semantic, "SV_Position", 0)) return "position";
-            if (is_semantic(semantic, "PSIZE", 0)) return "point_size";
-        }
-        else if (target == MSLGenerator::Target_FragmentShader)
-        {
-            if (is_semantic(semantic, "SV_Target", 0)) return "color(0)";
-            if (is_semantic(semantic, "SV_Target", 1)) return "color(1)";
-            if (is_semantic(semantic, "COLOR", 0)) return "color(0)";
-            if (is_semantic(semantic, "COLOR", 1)) return "color(1)";
-            if (is_semantic(semantic, "DEPTH")) return "depth(any)";
-            if (is_semantic(semantic, "DEPTH_GT")) return "depth(greater)";
-            if (is_semantic(semantic, "DEPTH_LT")) return "depth(less)";
-            if (is_semantic(semantic, "SAMPLE_MASK", 0)) return "sample_mask";
-        }
-    }
-    return NULL;
-}
-
 
 MSLGenerator::MSLGenerator()
 {
@@ -296,14 +220,14 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
                 {
                     if (!field->hidden)
                     {
-                        field->sv_semantic = translate_output_semantic(target, field->semantic);
+                        field->sv_semantic = TranslateOutputSemantic(field->semantic);
                     }
                     field = field->nextField;
                 }
             }
             else
             {
-                argument->sv_semantic = translate_output_semantic(target, argument->semantic);
+                argument->sv_semantic = TranslateOutputSemantic(argument->semantic);
             }
         }
         else {
@@ -327,7 +251,7 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 
                     if (!field->hidden)
                     {
-                        field->sv_semantic = translate_input_semantic(target, field->semantic);
+                        field->sv_semantic = TranslateInputSemantic(field->semantic);
 
                         /*if (target == Target_VertexShader && is_semantic(field->semantic, "COLOR"))
                         {
@@ -339,7 +263,7 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
             }
             else
             {
-                argument->sv_semantic = translate_input_semantic(target, argument->semantic);
+                argument->sv_semantic = TranslateInputSemantic(argument->semantic);
             }
         }
 
@@ -362,14 +286,14 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
             {
                 if (!field->hidden)
                 {
-                    field->sv_semantic = translate_output_semantic(target, field->semantic);
+                    field->sv_semantic = TranslateOutputSemantic(field->semantic);
                 }
                 field = field->nextField;
             }
         }
         else
         {
-            entryFunction->sv_semantic = translate_output_semantic(target, entryFunction->semantic);
+            entryFunction->sv_semantic = TranslateOutputSemantic(entryFunction->semantic);
         }
     }
 }
@@ -1621,6 +1545,74 @@ void MSLGenerator::OutputFunctionCall(HLSLFunctionCall* functionCall)
     m_writer.Write("%s(", name);
     OutputExpressionList(functionCall->argument);
     m_writer.Write(")");
+}
+
+const char* MSLGenerator::TranslateInputSemantic(const char * semantic)
+{
+    if (semantic == NULL)
+        return NULL;
+
+    unsigned int length, index;
+    ParseSemantic(semantic, &length, &index);
+
+    if (m_target == MSLGenerator::Target_VertexShader)
+    {
+        if (String_Equal(semantic, "INSTANCE_ID")) return "instance_id";
+        if (String_Equal(semantic, "SV_InstanceID")) return "instance_id";
+        if (String_Equal(semantic, "VERTEX_ID")) return "vertex_id";
+        if (String_Equal(semantic, "SV_VertexID")) return "vertex_id";
+
+        if (m_options.attributeCallback)
+        {
+            char name[64];
+            ASSERT(length < sizeof(name));
+
+            strncpy(name, semantic, length);
+            name[length] = 0;
+
+            int attribute = m_options.attributeCallback(name, index);
+
+            if (attribute >= 0)
+                return m_tree->AddStringFormat("attribute(%d)", attribute);
+        }
+    }
+    else if (m_target == MSLGenerator::Target_FragmentShader)
+    {
+        if (String_Equal(semantic, "POSITION")) return "position";
+        if (String_Equal(semantic, "VFACE")) return "front_facing";
+    }
+
+    return NULL;
+}
+
+const char* MSLGenerator::TranslateOutputSemantic(const char * semantic)
+{
+    if (semantic == NULL)
+        return NULL;
+
+    unsigned int length, index;
+    ParseSemantic(semantic, &length, &index);
+
+    if (m_target == MSLGenerator::Target_VertexShader)
+    {
+        if (String_Equal(semantic, "POSITION")) return "position";
+        if (String_Equal(semantic, "SV_Position")) return "position";
+        if (String_Equal(semantic, "PSIZE")) return "point_size";
+    }
+    else if (m_target == MSLGenerator::Target_FragmentShader)
+    {
+        if (strncmp(semantic, "SV_Target", length) == 0)
+            return m_tree->AddStringFormat("color(%d)", index);
+        if (strncmp(semantic, "COLOR", length) == 0)
+            return m_tree->AddStringFormat("color(%d)", index);
+
+        if (String_Equal(semantic, "DEPTH")) return "depth(any)";
+        if (String_Equal(semantic, "DEPTH_GT")) return "depth(greater)";
+        if (String_Equal(semantic, "DEPTH_LT")) return "depth(less)";
+        if (String_Equal(semantic, "SAMPLE_MASK")) return "sample_mask";
+    }
+
+    return NULL;
 }
 
 } // M4
