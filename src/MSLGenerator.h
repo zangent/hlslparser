@@ -88,8 +88,6 @@ private:
     void OutputFunctionCallStatement(int indent, HLSLFunctionCall* functionCall);
     void OutputFunctionCall(HLSLFunctionCall* functionCall);
 
-    int ParseRegister(const char* registerName, int& nextRegister);
-
     const char* TranslateInputSemantic(const char* semantic);
     const char* TranslateOutputSemantic(const char* semantic);
 

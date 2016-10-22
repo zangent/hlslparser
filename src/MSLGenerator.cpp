@@ -91,6 +91,25 @@ static void ParseSemantic(const char* semantic, unsigned int* outputLength, unsi
     *outputIndex = atoi(semanticIndex);
 }
 
+static int ParseRegister(const char* registerName, int& nextRegister)
+{
+    if (!registerName)
+        return nextRegister++;
+
+    while (*registerName && !isdigit(*registerName))
+        registerName++;
+
+    if (!*registerName)
+        return nextRegister++;
+
+    int result = atoi(registerName);
+
+    if (nextRegister <= result)
+        nextRegister = result + 1;
+
+    return result;
+}
+
 MSLGenerator::MSLGenerator()
 {
     m_tree                          = NULL;
@@ -296,25 +315,6 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
             entryFunction->sv_semantic = TranslateOutputSemantic(entryFunction->semantic);
         }
     }
-}
-
-int MSLGenerator::ParseRegister(const char* registerName, int& nextRegister)
-{
-    if (!registerName)
-        return nextRegister++;
-
-    while (*registerName && !isdigit(*registerName))
-        registerName++;
-
-    if (!*registerName)
-        return nextRegister++;
-
-    int result = atoi(registerName);
-
-    if (nextRegister <= result)
-        nextRegister = result + 1;
-
-    return result;
 }
 
 void MSLGenerator::CleanPrepass()
