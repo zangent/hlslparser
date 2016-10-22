@@ -900,6 +900,7 @@ extern void PruneTree(HLSLTree* tree, const char* entryName0, const char* entryN
 extern void SortTree(HLSLTree* tree);
 extern void GroupParameters(HLSLTree* tree);
 extern void HideUnusedArguments(HLSLFunction * function);
+extern bool EmulateAlphaTest(HLSLTree* tree, const char* entryName, float alphaRef = 0.5f);
 
 } // M4
 
