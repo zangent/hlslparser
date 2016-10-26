@@ -586,11 +586,7 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
     
     if (m_tree->NeedsFunction("tex2DMSfetch"))
     {
-        m_writer.WriteLine(0, "inline float4 tex2DMSfetch(texture2d_ms<float> t, uint2 texCoord, uint sample) {");
-        m_writer.WriteLine(1, "return t.read(texCoord, sample);");
-        m_writer.WriteLine(0, "}");
-
-        m_writer.WriteLine(0, "inline float4 tex2DMSfetch(texture2d_ms<float> t, float2 texCoord, uint sample) {");
+        m_writer.WriteLine(0, "inline float4 tex2DMSfetch(texture2d_ms<float> t, int2 texCoord, int sample) {");
         m_writer.WriteLine(1, "return t.read(uint2(texCoord), sample);");
         m_writer.WriteLine(0, "}");
     }
