@@ -73,6 +73,7 @@ static const char* GetTypeName(const HLSLType& type)
     case HLSLBaseType_SamplerCube:      return "texturecube<float>";
     case HLSLBaseType_Sampler2DShadow:  return "depth2d<float>";
     case HLSLBaseType_Sampler2DMS:      return "texture2d_ms<float>";
+    case HLSLBaseType_Sampler2DArray:   return "texture2d_array<float>";
     case HLSLBaseType_UserDefined:      return type.typeName;
     default:
         ASSERT(0);
@@ -591,6 +592,19 @@ bool MSLGenerator::Generate(HLSLTree* tree, Target target, const char* entryName
         m_writer.WriteLine(0, "}");
     }
     
+    m_writer.WriteLine(0, "struct Texture2DArraySampler {");
+    m_writer.WriteLine(1, "const thread texture2d_array<float>& t;");
+    m_writer.WriteLine(1, "const thread sampler& s;");
+    m_writer.WriteLine(1, "Texture2DArraySampler(thread const texture2d_array<float>& t, thread const sampler& s) : t(t), s(s) {};");
+    m_writer.WriteLine(0, "};");
+
+    if (m_tree->NeedsFunction("tex2DArray"))
+    {
+        m_writer.WriteLine(0, "inline float4 tex2DArray(Texture2DArraySampler ts, float3 texCoord) {");
+        m_writer.WriteLine(1, "return ts.t.sample(ts.s, texCoord.xy, texCoord.z + 0.5);"); // 0.5 offset needed on nvidia gpus
+        m_writer.WriteLine(0, "}");
+    }
+
     const char* shaderClassName = (target == MSLGenerator::Target_VertexShader) ? "Vertex_Shader" : "Pixel_Shader";
     m_writer.WriteLine(0, "struct %s {", shaderClassName);
     
@@ -921,6 +935,8 @@ void MSLGenerator::OutputDeclaration(HLSLDeclaration* declaration)
             m_writer.Write("thread depth2d<float>& %s_texture; thread sampler& %s_sampler", declaration->name, declaration->name);
         else if (declaration->type.baseType == HLSLBaseType_Sampler2DMS)
             m_writer.Write("thread texture2d_ms<float>& %s_texture", declaration->name);
+        else if (declaration->type.baseType == HLSLBaseType_Sampler2DArray)
+            m_writer.Write("thread texture2d_array<float>& %s_texture; thread sampler& %s_sampler", declaration->name, declaration->name);
         else
             m_writer.Write("<unhandled texture type>");
     }
@@ -1038,6 +1054,8 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, HLSLExpression* 
                 m_writer.Write("Texture2DShadowSampler(%s_texture, %s_sampler)", name, name);
             else if (identifierExpression->expressionType.baseType == HLSLBaseType_Sampler2DMS)
                 m_writer.Write("%s_texture", name);
+            else if (identifierExpression->expressionType.baseType == HLSLBaseType_Sampler2DArray)
+                m_writer.Write("Texture2DArraySampler(%s_texture, %s_sampler)", name, name);
             else
                 m_writer.Write("<unhandled texture type>");
         }
@@ -1336,8 +1354,10 @@ void MSLGenerator::OutputDeclarationType(const HLSLType& type, bool isRef, bool 
             typeName = "TextureCubeSampler";
         else if (type.baseType == HLSLBaseType_Sampler2DShadow)
             typeName = "Texture2DShadowSampler";
-        else if (type.baseType == HLSLBaseType_Sampler2DShadow)
+        else if (type.baseType == HLSLBaseType_Sampler2DMS)
             typeName = "Texture2DMSSampler";
+        else if (type.baseType == HLSLBaseType_Sampler2DArray)
+            typeName = "Texture2DArraySampler";
         else
             typeName = "<unhandled texture type>";
     }
@@ -1580,6 +1600,7 @@ const char* MSLGenerator::TranslateInputSemantic(const char * semantic)
     else if (m_target == MSLGenerator::Target_FragmentShader)
     {
         if (String_Equal(semantic, "POSITION")) return "position";
+        if (String_Equal(semantic, "SV_Position")) return "position";
         if (String_Equal(semantic, "VFACE")) return "front_facing";
     }
 
