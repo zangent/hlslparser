@@ -72,6 +72,8 @@ private:
     void Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFunction);
     void CleanPrepass();
     
+    void OutputStaticDeclarations(int indent, HLSLStatement* statement);
+
     void OutputStatements(int indent, HLSLStatement* statement);
     void OutputAttributes(int indent, HLSLAttribute* attribute);
     void OutputDeclaration(HLSLDeclaration* declaration);
