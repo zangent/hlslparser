@@ -1003,7 +1003,7 @@ void GLSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const
                     // At the top level, we need the "uniform" keyword.
 					if (IsSamplerType(declaration->type.baseType) && m_version == Version_450)
 						m_writer.Write("layout (set=1,binding=%s) uniform ", declaration->registerName + 1);
-					else
+					else if ((declaration->type.flags & HLSLTypeFlag_Static) == 0)
 						m_writer.Write("uniform ");
                 }
                 OutputDeclaration(declaration);
@@ -1834,6 +1834,11 @@ void GLSLGenerator::OutputDeclaration(const HLSLType& type, const char* name)
 
 void GLSLGenerator::OutputDeclarationType( const HLSLType& type )
 {
+    if ((type.flags & HLSLTypeFlag_Const) && (type.flags & HLSLTypeFlag_Static))
+    {
+        m_writer.Write("const ");
+    }
+
 	m_writer.Write( "%s ", GetTypeName( type ) );
 }
 
